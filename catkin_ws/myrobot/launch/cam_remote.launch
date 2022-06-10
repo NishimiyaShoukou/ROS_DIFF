@@ -1,0 +1,9 @@
+<launch>
+  
+  <node pkg="myrobot" type="base_controller" name="base_controller" />
+  <include file="$(find myrobot)/launch/usb_cam-test.launch" /> 
+  
+ <node pkg="rviz" type="rviz" name="rviz" args="-d $(find myrobot)/map/my_map.rviz" />
+  
+</launch>
+

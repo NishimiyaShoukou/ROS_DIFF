@@ -1,0 +1,18 @@
+<launch>
+
+    <!-- ���ò��� -->
+    <arg name="urdf_file" default="$(find xacro)/xacro '$(find myrobot)/my_urdf/robot.urdf.xacro'" /> 
+   
+  <param name="robot_description" command="$(arg urdf_file)" />
+    
+    
+   <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" >  
+  </node>
+
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher">
+      <param name="publish_frequency" type="double" value="20.0" />
+  </node>
+<!-- ���� rviz -->
+  <node pkg="rviz" type="rviz" name="rviz" />
+</launch>
+

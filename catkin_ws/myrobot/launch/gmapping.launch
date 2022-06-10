@@ -1,0 +1,65 @@
+<launch>
+    <param name="use_sim_time" value="false"/>
+
+
+  <!-- Load the URDF/Xacro model of our robot -->
+  <arg name="urdf_file" default="$(find xacro)/xacro '$(find myrobot)/my_urdf/robot.urdf.xacro'" /> 
+   
+  <param name="robot_description" command="$(arg urdf_file)" />
+
+  <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" >  
+  </node>
+  
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher">
+      <param name="publish_frequency" type="double" value="20.0" />
+  </node>
+  
+     <include file="$(find myrobot)/launch/usb_cam-test.launch" /> 
+  <node pkg="tf" type="static_transform_publisher" name="static_scan_to_base_link" args="0.03 0.0 0.08 0 0 0.0 base_link laser 10" />
+     <!-- lds laser-->
+    <node pkg="hls_lfcd_lds_driver" type="hlds_laser_publisher" name="turtlebot3_lds" output="screen">
+      <param name="port" value="/dev/lidar"/>
+      <param name="frame_id" value="laser"/>
+    </node>
+   <node pkg="myrobot" type="odm" name="odm" output="screen">
+     </node>
+    <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen">
+      <remap from="scan" to="scan"/>
+      <param name="map_update_interval" value="0.5"/>  <!-- default is : 5.0-->
+      <param name="maxUrange" value="8.0"/> 
+       <param name="minimumScore" value="30"/>           <!-- default is : 30-->
+      <param name="sigma" value="0.05"/>
+      <param name="kernelSize" value="1"/>
+      <param name="lstep" value="0.05"/>
+      <param name="astep" value="0.05"/>
+      <param name="iterations" value="5"/>
+      <param name="lsigma" value="0.075"/>
+      <param name="ogain" value="3.0"/>
+      <param name="lskip" value="0"/>
+      <param name="srr" value="0.1"/>
+      <param name="srt" value="0.2"/>
+      <param name="str" value="0.1"/>
+      <param name="stt" value="0.2"/>
+      <param name="linearUpdate" value="0.3"/>     <!-- default is : 1-->
+      <param name="angularUpdate" value="0.5"/>    <!-- default is : 0.5-->
+      <param name="temporalUpdate" value="3.0"/>   <!-- default is : 3.0-->
+      <param name="resampleThreshold" value="0.5"/>
+      <param name="particles" value="30"/>
+      <param name="xmin" value="-50.0"/>
+      <param name="ymin" value="-50.0"/>
+      <param name="xmax" value="50.0"/>
+      <param name="ymax" value="50.0"/>
+      <param name="delta" value="0.05"/>
+      <param name="llsamplerange" value="0.01"/>
+      <param name="llsamplestep" value="0.01"/>
+      <param name="lasamplerange" value="0.005"/>
+      <param name="lasamplestep" value="0.005"/>
+    </node>
+    
+   <!-- rviz-->
+     
+   
+  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find myrobot)/map/my_map.rviz" />
+
+
+</launch>

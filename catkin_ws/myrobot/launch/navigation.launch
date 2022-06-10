@@ -1,0 +1,46 @@
+<launch>
+
+     <!-- Load the URDF/Xacro model of our robot -->
+  <arg name="urdf_file" default="$(find xacro)/xacro '$(find myrobot)/my_urdf/robot2.urdf.xacro'" /> 
+   
+  <param name="robot_description" command="$(arg urdf_file)" />
+
+  <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" >  
+  </node>
+   
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher">
+      <param name="publish_frequency" type="double" value="20.0" />
+  </node>
+      <node pkg="myrobot" type="base_controller" name="base_controller" />
+   
+  <node pkg="tf" type="static_transform_publisher" name="static_scan_to_base_link" args="0.03 0.0 0.08 3.14 0 0 base_link laser 10" />
+     <!-- lds laser-->
+    <node pkg="hls_lfcd_lds_driver" type="hlds_laser_publisher" name="lds" output="screen">
+      <param name="port" value="/dev/lidar"/>
+      <param name="frame_id" value="laser"/>
+    </node>
+   <node pkg="myrobot" type="odm" name="odm" output="screen">
+     </node>
+
+    <!-- Run the map server and load the static map -->
+    <node name="map_server" pkg="map_server" type="map_server" args="$(find myrobot)/map/map.yaml"/>
+    
+    <!--- Run AMCL -->
+    <include file="$(find launch_file)/launch/amcl.launch"/>
+    
+    <!-- move_base 节点-->
+    <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
+        <rosparam file="$(find launch_file)/params/costmap_common_params.yaml" command="load" ns="global_costmap" /> 
+        <rosparam file="$(find launch_file)/params/costmap_common_params.yaml" command="load" ns="local_costmap" />
+        <rosparam file="$(find launch_file)/params/local_costmap_params.yaml" command="load" />
+        <rosparam file="$(find launch_file)/params/move_base_params.yaml" command="load" />
+        <rosparam file="$(find launch_file)/params/global_costmap_params.yaml" command="load" /> 
+        <rosparam file="$(find launch_file)/params/dwa_local_planner_params.yaml" command="load" />
+        <rosparam file="$(find launch_file)/params/global_planner_params.yaml" command="load"/>
+        
+    </node>
+
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find myrobot)/map/my_map.rviz" />
+
+
+</launch> 
