@@ -1,5 +1,14 @@
-/* base_controller.cpp */
-#include "ros/ros.h"  //rosï¿½ï¿½Òªï¿½ï¿½Í·ï¿½Ä¼ï¿½
+/**
+ * @file base_controller.cpp
+ * @author thoelc
+ * @brief ÊµÏÖ¶Ôstm32µ×ÅÌ¿ØÖÆ¹¦ÄÜ
+ * @version 1.0
+ * @date 2023-11-06
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
+#include "ros/ros.h"  
 #include <geometry_msgs/Twist.h>
 #include <tf/transform_broadcaster.h>
 #include <nav_msgs/Odometry.h>
@@ -15,28 +24,28 @@
 #include "myrobot/speed.h"
 using namespace std;
 /*****************************************************************************/
-float D = 0.14;    //dis of two wheel m
-float linear_temp = 9, angular_temp = 9;//ï¿½İ´ï¿½ï¿½ï¿½ï¿½ï¿½Ù¶ÈºÍ½ï¿½ï¿½Ù¶ï¿½
-float reductionSpeedRatio = 26.666; //ï¿½ï¿½ï¿½Ù±ï¿½
+float D = 0.14;    // dis of two wheel m
+float linear_temp = 9, angular_temp = 9;// ´æ´¢»ñµÃÏßËÙ¶ÈºÍ½ÇËÙ¶ÈÖµ
+float reductionSpeedRatio = 26.666; //×ª»»³ÉÂÖ×Ó×ªËÙ
 /****************************************************/
-string rec_buffer;  //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½İ½ï¿½ï¿½Õ±ï¿½ï¿½ï¿½
+
 
 float left_speed = 0, right_speed = 0, left_speed_temp, right_speed_temp;
 unsigned char control_flag=0x07;
 
-//test receive value
+// µ±Ç°´ÓÏÂÎ»»ú¶ÁÈ¡µ½×óÓÒÂÖËÙ¶ÈºÍµ×ÅÌ½Ç¶ÈÖµ(²îËÙµ×ÅÌ)
 double left_speed_now=0.0;
 double right_speed_now=0.0;
 double angle=0.0;
 double last_angle=0.0;
 unsigned char testRece4=0x00;
 /************************************************************/
-void callback(const geometry_msgs::Twist& cmd_input)//ï¿½ï¿½ï¿½ï¿½/cmd_velï¿½ï¿½ï¿½ï¿½Øµï¿½ï¿½ï¿½ï¿½ï¿½
+void callback(const geometry_msgs::Twist& cmd_input)// cmd_vel»°Ìâ½ÓÊÕ»Øµ÷º¯Êı
 {
 	
 	cout << "linear_temp: " << linear_temp << "    " << "angular_temp: " << angular_temp << endl;
 
-	linear_temp = cmd_input.linear.x;//ï¿½ï¿½È¡/cmd_velï¿½ï¿½ï¿½ï¿½ï¿½Ù¶ï¿½.m/s
+	linear_temp = cmd_input.linear.x;// µ±ÓĞcmd_vel»°Ìâ¸üĞÂÊ±¸üĞÂËÙ¶Èx·½Ïò
 	angular_temp = cmd_input.angular.z;//ï¿½ï¿½È¡/cmd_velï¿½Ä½ï¿½ï¿½Ù¶ï¿½,rad/s
 	
 	cout << "linear_temp: " << linear_temp << "    " << "angular_temp: " << angular_temp << endl;
@@ -48,7 +57,7 @@ void callback(const geometry_msgs::Twist& cmd_input)//ï¿½ï¿½ï¿½ï¿½/cmd_velï¿½ï¿½
 	
 
 	left_speed_temp = left_speed* reductionSpeedRatio ; //r/min
-	right_speed_temp =right_speed * reductionSpeedRatio ;
+	right_speed_temp = right_speed * reductionSpeedRatio ;
 
 	
 
@@ -65,11 +74,11 @@ int main(int argc, char** argv)
 	
 
 	ros::init(argc, argv, "base_controller");//
-	ros::NodeHandle n;  //ï¿½ï¿½ï¿½ï¿½Úµï¿½ï¿½ï¿½Ì¾ï¿½ï¿½
+	ros::NodeHandle n;  //´´½¨¾ä±ú
 
-	ros::Subscriber sub = n.subscribe("cmd_vel", 20, callback); //ï¿½ï¿½ï¿½ï¿½/cmd_velï¿½ï¿½ï¿½ï¿½
-	ros::NodeHandle nh;  //ï¿½ï¿½ï¿½ï¿½Úµï¿½ï¿½ï¿½Ì¾ï¿½ï¿½
-    ros::Publisher pub = nh.advertise<myrobot::speed>("/car_state",10);
+	ros::Subscriber sub = n.subscribe("cmd_vel", 20, callback); //¶©ÔÄ/cmd_vel»°Ìâ
+	ros::NodeHandle nh;  
+    ros::Publisher pub = nh.advertise<myrobot::speed>("/car_state",10);  // ·¢²¼Ğ¡³µËÙ¶ÈĞÅÏ¢/car_state»°Ìâ
 	//4 ï¿½ï¿½Ö¯ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢
 	myrobot::speed p;
 
@@ -87,18 +96,20 @@ int main(int argc, char** argv)
     {
         ros::spinOnce();
         current_time = ros::Time::now();
-
+		// ¶ÁÈ¡ËÙ¶ÈÖµºÍ½Ç¶ÈÖµ
 	    readSpeed(left_speed_now,right_speed_now,angle,testRece4);
+		// »ñÈ¡µ¥Î»Ê±¼ä
         double dt = (current_time - last_time).toSec();
        //writeSpeed(-10,-10,control_flag);
+	   //½øĞĞËÙ¶ÈºÏ³É È¡Á½ÂÖËÙ¶ÈÆ½¾ùÖµ×÷ÎªĞ¡³µÇ°½øËÙ¶È
 		p.vx=0.5*0.225*(right_speed_now+left_speed_now)/60;
-     
+		// Ä¿Ç°Ñ¡ÓÃ¶ÁÈ¡Ğ¡³µ½Ç¶È±ä»¯½øĞĞÎ¢·Ö»ñµÃ½ÇËÙ¶È£¬Ò²¿ÉÒÔ¸ù¾İÁ½ÂÖËÙ¶È¼ÆËãµ¥Îó²î¸ü´ó
         //p.w=(right_speed_now-left_speed_now)/D;
 		p.w=((angle-last_angle)*0.01745329/88)/dt;
 		pub.publish(p);
 		last_angle=angle;
 		last_time =current_time ;
-        //ï¿½ï¿½Ó¡ï¿½ï¿½ï¿½ï¿½
+        // ²âÊÔÊä³ö¿ÉÒÔÉ¾µô
 		ROS_INFO("we receive 1 %f,%f,%f,%f\n",p.vx,p.w,angle,dt);
 	    ROS_INFO("we receive 2 %f,%f,%f,%d\n",left_speed_now,right_speed_now,angle,testRece4);
  

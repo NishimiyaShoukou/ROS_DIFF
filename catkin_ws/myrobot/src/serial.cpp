@@ -1,13 +1,24 @@
+/**
+ * @file serial.cpp
+ * @author thoelc
+ * @brief »ùÓÚboost::asio·½·¨µÄ´®¿ÚÍ¨ÐÅ£¬ÓÅµãÊÇ²»ÓÃÅäÖÃRosSerial°üÖ±½Ó¿ÉÒÔÓÃ
+ * @version 0.1
+ * @date 2023-11-06
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
 #include "serial.h"
  
 using namespace std;
 using namespace boost::asio;
-//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ø¶ï¿½ï¿½ï¿½
+
 boost::asio::io_service iosev;
+// °ó¶¨µÄ´®¿ÚºÅ£¬¸ù¾Ý×Ô¼ºÇé¿ö¸ü¸Ä
 boost::asio::serial_port sp(iosev, "/dev/chasis");
 boost::system::error_code err;
 /********************************************************
-            ï¿½ï¿½ï¿½Ú·ï¿½ï¿½Í½ï¿½ï¿½ï¿½ï¿½ï¿½Ø³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+ *  ¶¨ÒåÖ¡Í·ºÍÖ¡Î²Êý¾Ý°ü
 ********************************************************/
 const unsigned char header[2]  = {0x55, 0xaa};
 const unsigned char ender[2]   = {0x0d, 0x0a};
@@ -18,7 +29,7 @@ union sendData
 	unsigned char data_speed[2];
 }leftVelSet,rightVelSet;
  
-//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ù¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ù¡ï¿½ï¿½Ç¶È£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½å£¨-32767 - +32768ï¿½ï¿½
+// Ê¹ÓÃÁªºÏÌå¶¨ÒåÊý¾Ý°üdºÍdata¹²ÓÃÄÚ´æ£¨-32767 - +32768)
 union receiveData
 {
 	short d;
@@ -26,9 +37,7 @@ union receiveData
 }leftVelNow,rightVelNow,angleNow;
  
 /********************************************************
-ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ü£ï¿½ï¿½ï¿½ï¿½Ú²ï¿½ï¿½ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½
-ï¿½ï¿½Ú²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-ï¿½ï¿½ï¿½Ú²ï¿½ï¿½ï¿½ï¿½ï¿½
+´®¿Ú³õÊ¼»¯²¨ÌØÂÊ115200
 ********************************************************/
 void serialInit()
 {
@@ -39,11 +48,14 @@ void serialInit()
     sp.set_option(serial_port::character_size(8));    
 }
  
-/********************************************************
-ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ü£ï¿½ï¿½ï¿½ï¿½Ô»ï¿½ï¿½ï¿½ï¿½Ëµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó¿ï¿½ï¿½ï¿½ï¿½Ù¶È£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¸ï¿½ï¿½ï¿½Î»ï¿½ï¿½
-ï¿½ï¿½Ú²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ù¶È¡ï¿½ï¿½ï¿½ï¿½Ù¶ï¿½
-ï¿½ï¿½ï¿½Ú²ï¿½ï¿½ï¿½ï¿½ï¿½
-********************************************************/
+
+/**
+ * @brief Ð´ËÙ¶Èº¯Êý£¬µÚÈý¸ö²ÎÊý±£ÁôÌí¼Ó¹¦ÄÜ
+ * 
+ * @param Left_v 
+ * @param Right_v 
+ * @param ctrlFlag 
+ */
 void writeSpeed(double Left_v, double Right_v,unsigned char ctrlFlag)
 {
     unsigned char buf[13] = {0};//
@@ -52,7 +64,7 @@ void writeSpeed(double Left_v, double Right_v,unsigned char ctrlFlag)
     leftVelSet.speed = Left_v;//mm/s
     rightVelSet.speed= Right_v;
  
-    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢Í·
+    // Ð´ÈëÖ¡Í·
     for(i = 0; i < 2; i++)
         buf[i] = header[i];             //buf[0]  buf[1]
     
@@ -74,18 +86,24 @@ void writeSpeed(double Left_v, double Right_v,unsigned char ctrlFlag)
     // Í¨ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â·ï¿½ï¿½ï¿½ï¿½ï¿½
     boost::asio::write(sp, boost::asio::buffer(buf));
 }
-/********************************************************
-ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ü£ï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½
-ï¿½ï¿½Ú²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ù¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ù¡ï¿½ï¿½Ç¶È£ï¿½Ô¤ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î»
-ï¿½ï¿½ï¿½Ú²ï¿½ï¿½ï¿½ï¿½ï¿½bool
-********************************************************/
+
+/**
+ * @brief ¶ÁËÙ¶Èº¯Êý
+ * 
+ * @param Left_v 
+ * @param Right_v 
+ * @param Angle 
+ * @param ctrlFlag 
+ * @return true 
+ * @return false 
+ */
 bool readSpeed(double &Left_v,double &Right_v,double &Angle,unsigned char &ctrlFlag)
 {
     char i, length = 0;
     unsigned char checkSum;
     unsigned char buf[1024]={0};
     //=========================================================
-    //ï¿½Ë¶Î´ï¿½ï¿½ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ÝµÄ½ï¿½Î²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½È¡ï¿½ï¿½ï¿½Ýµï¿½Í·ï¿½ï¿½
+    //ï¿½Ë¶Î´ï¿½ï¿½ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ÝµÄ½ï¿½Î²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½È¡ï¿½ï¿½ï¿½Ýµï¿½Í·ï¿½ï¿?
     try
     {
         boost::asio::streambuf response;
@@ -102,7 +120,7 @@ bool readSpeed(double &Left_v,double &Right_v,double &Angle,unsigned char &ctrlF
     } 
     //=========================================================        
  
-    // ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢Í·
+    // ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢Í?
     if (buf[0]!= header[0] || buf[1] != header[1])   //buf[0] buf[1]
     {
         ROS_ERROR("Received message header error!");
@@ -111,8 +129,8 @@ bool readSpeed(double &Left_v,double &Right_v,double &Angle,unsigned char &ctrlF
     // ï¿½ï¿½ï¿½Ý³ï¿½ï¿½ï¿½
     length = buf[2];                                 //buf[2]
  
-    // ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢Ð£ï¿½ï¿½Öµ
-    // checkSum = getCrc8(buf, 3 + length);             //buf[10] ï¿½ï¿½ï¿½ï¿½Ã³ï¿½
+    // ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢Ð£ï¿½ï¿½Ö?
+    // checkSum = getCrc8(buf, 3 + length);             //buf[10] ï¿½ï¿½ï¿½ï¿½Ã³ï¿?
     // if (checkSum != buf[3 + length])                 //buf[10] ï¿½ï¿½ï¿½Ú½ï¿½ï¿½ï¿½
     // {
     //     ROS_ERROR("Received data check sum error!");
@@ -136,11 +154,13 @@ bool readSpeed(double &Left_v,double &Right_v,double &Angle,unsigned char &ctrlF
  
     return true;
 }
-/********************************************************
-ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ü£ï¿½ï¿½ï¿½ï¿½8Î»Ñ­ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½Öµ
-ï¿½ï¿½Ú²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-ï¿½ï¿½ï¿½Ú²ï¿½ï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½Öµ
-********************************************************/
+/**
+ * @brief Get the Crc8 object (unuse)
+ * 
+ * @param ptr 
+ * @param len 
+ * @return unsigned char 
+ */
 unsigned char getCrc8(unsigned char *ptr, unsigned short len)
 {
     unsigned char crc;

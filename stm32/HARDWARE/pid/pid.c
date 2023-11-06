@@ -141,8 +141,8 @@ int Incremental_PID(pid_t *pid,float set,float get)
 	             pid->kd*(pid->err[NOW]-2*pid->err[LAST]+pid->err[LLAST]);
      pid->err[LLAST] = pid->err[LAST];
      pid->err[LAST] = pid->err[NOW];     //保存上一次偏差 
-	   pid->max_out=1000;  
-		 pid->out=(pid->out>pid->max_out)?pid->max_out:pid->out;      //输出限幅
-	   pid->out=(pid->out<-(pid->max_out))?-(pid->max_out):pid->out;
+	 pid->max_out=1000;  
+	 pid->out=(pid->out>pid->max_out)?pid->max_out:pid->out;      //输出限幅
+	 pid->out=(pid->out<-(pid->max_out))?-(pid->max_out):pid->out;
      return pid->out;                         //增量输出
 }
