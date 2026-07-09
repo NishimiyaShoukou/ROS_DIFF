@@ -1,0 +1,23 @@
+<!--
+  robot_remote.launch - 小车本机键盘遥控入口
+  在 bringup 基础上启动 teleop_twist_keyboard，用于手动遥控底盘（不启用雷达）。
+-->
+<launch>
+  <!-- 底盘串口设备（透传给 bringup） -->
+  <arg name="serial_port" default="/dev/chassis"/>
+  <!-- 雷达串口设备（本启动流程默认不启用雷达） -->
+  <arg name="lidar_port" default="/dev/ydlidar"/>
+  <!-- 是否启用雷达，默认关闭以降低键盘遥控时的负载 -->
+  <arg name="enable_lidar" default="false"/>
+  <arg name="use_ekf" default="false"/>
+
+  <include file="$(find myrobot)/launch/bringup.launch">
+    <arg name="serial_port" value="$(arg serial_port)"/>
+    <arg name="lidar_port" value="$(arg lidar_port)"/>
+    <arg name="enable_lidar" value="$(arg enable_lidar)"/>
+    <arg name="use_ekf" value="$(arg use_ekf)"/>
+  </include>
+
+  <node pkg="teleop_twist_keyboard" type="teleop_twist_keyboard.py"
+        name="teleop_twist_keyboard" output="screen"/>
+</launch>

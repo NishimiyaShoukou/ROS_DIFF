@@ -1,0 +1,1080 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>URDF 参数编辑器</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --panel-2: #eef2f5;
+      --text: #18212b;
+      --muted: #65727f;
+      --line: #d8e0e7;
+      --accent: #1677ff;
+      --accent-2: #10a37f;
+      --warn: #c77b00;
+      --danger: #d43f3a;
+      --shadow: 0 8px 24px rgba(20, 34, 48, 0.08);
+      --body: #ffb454;
+      --body-stroke: #b6731a;
+      --wheel: #2c333a;
+      --caster: #9aa7b3;
+      --lidar: #d43f3a;
+      --ground: #b0bcc7;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+      letter-spacing: 0;
+    }
+
+    button, input, select {
+      font: inherit;
+    }
+
+    .app {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-height: 100vh;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 14px 20px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--line);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      flex-wrap: wrap;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .title-block {
+      display: grid;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .file-path {
+      color: var(--muted);
+      font-size: 12px;
+      font-family: Consolas, "Courier New", monospace;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 60vw;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      height: 34px;
+      padding: 0 10px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      color: var(--muted);
+      background: var(--panel-2);
+      white-space: nowrap;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #9aa7b3;
+    }
+
+    .status.dirty .dot { background: var(--warn); }
+    .status.clean .dot { background: var(--accent-2); }
+    .status.error .dot { background: var(--danger); }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(360px, 460px) minmax(0, 1fr);
+      gap: 16px;
+      padding: 16px;
+      align-items: start;
+    }
+
+    .params, .viz {
+      display: grid;
+      gap: 12px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: 14px;
+    }
+
+    .panel h2 {
+      margin: 0 0 12px;
+      font-size: 15px;
+    }
+
+    .panel p {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 0;
+      border-bottom: 1px dashed var(--line);
+    }
+
+    .row:last-child { border-bottom: none; }
+
+    .row .meta {
+      display: grid;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .row .name {
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    .row .hint {
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .input-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    input[type="number"] {
+      width: 96px;
+      height: 32px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--text);
+      padding: 0 8px;
+      text-align: right;
+    }
+
+    input[type="number"].changed {
+      border-color: var(--warn);
+      background: #fff8e6;
+    }
+
+    input[type="number"].invalid {
+      border-color: var(--danger);
+      background: #fff0ef;
+    }
+
+    .unit {
+      color: var(--muted);
+      font-size: 11px;
+      width: 18px;
+    }
+
+    button {
+      height: 32px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--panel);
+      color: var(--text);
+      cursor: pointer;
+      padding: 0 10px;
+      white-space: nowrap;
+    }
+
+    button.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    button.warn {
+      background: #fff;
+      color: var(--warn);
+      border-color: var(--warn);
+    }
+
+    button.ghost {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      font-size: 14px;
+      padding: 0 4px;
+      width: 26px;
+    }
+
+    button.ghost:hover { color: var(--accent); }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    svg {
+      width: 100%;
+      height: 320px;
+      display: block;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfd;
+    }
+
+    #sideView { height: 280px; }
+
+    .legend {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 8px;
+    }
+
+    .legend i {
+      display: inline-block;
+      width: 14px;
+      height: 10px;
+      margin-right: 6px;
+      vertical-align: middle;
+      border-radius: 2px;
+    }
+
+    code {
+      font-family: Consolas, "Courier New", monospace;
+      background: var(--panel-2);
+      padding: 1px 6px;
+      border-radius: 4px;
+      color: var(--text);
+    }
+
+    .kv {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px dashed var(--line);
+      font-size: 13px;
+    }
+
+    .kv:last-child { border-bottom: none; }
+
+    .kv .val {
+      font-family: Consolas, monospace;
+      color: var(--accent);
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      transform: translateX(-50%);
+      background: var(--text);
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 6px;
+      box-shadow: 0 10px 28px rgba(0,0,0,0.25);
+      font-size: 13px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.18s ease;
+      z-index: 100;
+      max-width: 80vw;
+    }
+
+    .toast.show { opacity: 1; }
+    .toast.error { background: var(--danger); }
+    .toast.success { background: var(--accent-2); }
+
+    .notice {
+      background: #fff8e6;
+      border: 1px solid #f5d089;
+      border-radius: 6px;
+      padding: 10px;
+      color: #6b4d00;
+      font-size: 12px;
+      line-height: 1.5;
+      margin-bottom: 10px;
+    }
+
+    .notice strong { color: var(--warn); }
+
+    ul.tips {
+      margin: 0;
+      padding-left: 20px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.7;
+    }
+
+    @media (max-width: 980px) {
+      main { grid-template-columns: 1fr; }
+      svg { height: 240px; }
+      #sideView { height: 220px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="title-block">
+        <h1>URDF 参数编辑器</h1>
+        <span class="file-path" id="filePath">未加载</span>
+      </div>
+      <div class="toolbar">
+        <div id="status" class="status"><span class="dot"></span><span id="statusText">未加载</span></div>
+        <button id="reloadBtn">重新加载</button>
+        <button id="resetAllBtn">撤销未保存修改</button>
+        <button id="applyBtn" class="primary">应用到文件</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="params" id="params"></section>
+
+      <section class="viz">
+        <div class="panel">
+          <h2>俯视图</h2>
+          <svg id="topView" viewBox="0 0 600 320" preserveAspectRatio="xMidYMid meet"></svg>
+          <div class="legend">
+            <span><i style="background:var(--body);border:1px solid var(--body-stroke);"></i>车身</span>
+            <span><i style="background:var(--wheel);"></i>驱动轮</span>
+            <span><i style="background:var(--caster);"></i>万向轮</span>
+            <span><i style="background:var(--lidar);"></i>雷达</span>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>侧视图</h2>
+          <svg id="sideView" viewBox="0 0 600 280" preserveAspectRatio="xMidYMid meet"></svg>
+          <div class="legend">
+            <span><i style="background:#cbd5dc;"></i>地面</span>
+            <span><i style="background:var(--body);border:1px solid var(--body-stroke);"></i>车身</span>
+            <span><i style="background:var(--wheel);"></i>驱动轮（横截面）</span>
+            <span><i style="background:var(--caster);"></i>万向轮</span>
+            <span><i style="background:var(--lidar);"></i>雷达</span>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>联动控制与导航参数</h2>
+          <p>修改模型后，下面的底盘参数与代价地图外廓也需要同步：</p>
+          <div class="kv"><span>wheel_separation（左右轮中心距）</span><span class="val" id="vSep">--</span></div>
+          <div class="kv"><span>几何轮周长（2πr）</span><span class="val" id="vCirc">--</span></div>
+          <p style="margin-top:10px;">按钮会保留已有地面标定比例，更新 <code>base_controller.yaml</code> 的轮距/有效轮周长，以及 <code>costmap_common.yaml</code> 的 footprint。</p>
+          <button id="syncYamlBtn">同步控制与 footprint</button>
+        </div>
+
+        <div class="panel">
+          <h2>入门提示</h2>
+          <ul class="tips">
+            <li>坐标系遵循 REP-103：<b>+X 前</b>，<b>+Y 左</b>，<b>+Z 上</b>。</li>
+            <li>所有尺寸单位为 <b>米 (m)</b>，保留 3 位小数。</li>
+            <li>每次保存前会生成 <code>.bak</code>，并保留最近 3 版。</li>
+            <li>想看效果：在终端执行 <code>roslaunch myrobot remote_rviz.launch</code>。</li>
+            <li>首次开机会请求连接串口，纯修改模型不需要串口。</li>
+            <li>遇到“路径不允许”：说明尝试写到 myrobot 包之外，已被服务器拒绝。</li>
+          </ul>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    // 12 个可在 UI 中编辑的 xacro 参数。
+    // group 决定它们归属的面板；hint 显示在输入框上方。
+    const SCHEMA = {
+      body_length:       { label: "车身长度",  group: "body",   hint: "前后总长，决定外廓" },
+      body_width:        { label: "车身宽度",  group: "body",   hint: "左右宽" },
+      body_height:       { label: "车身高度",  group: "body",   hint: "板厚" },
+      front_extent:      { label: "前端到驱动轴", group: "ext",  hint: "驱动轴到车身前端 (+X)" },
+      rear_extent:       { label: "后端到驱动轴", group: "ext",  hint: "驱动轴到车身后端 (-X)" },
+      wheel_track:       { label: "左右轮距",  group: "wheel",  hint: "两轮中心间距，影响底盘差速" },
+      wheel_radius:      { label: "轮子半径",  group: "wheel",  hint: "影响里程计算 (wheel_circumference)" },
+      wheel_width:       { label: "轮子宽度",  group: "wheel",  hint: "轮胎厚度" },
+      caster_x:          { label: "万向轮 X 偏移", group: "caster", hint: "+X 方向，驱动轴前方" },
+      caster_radius:     { label: "万向轮半径", group: "caster", hint: "球体半径" },
+      laser_x:           { label: "雷达 X 偏移", group: "lidar",  hint: "+X 方向，驱动轴前方" },
+      laser_z_from_axle: { label: "雷达离轴高度", group: "lidar", hint: "相对驱动轴的 +Z 高度" },
+    };
+
+    const GROUPS = [
+      { id: "body",   title: "车身尺寸",   params: ["body_length", "body_width", "body_height"] },
+      { id: "ext",    title: "前后位置",   params: ["front_extent", "rear_extent"] },
+      { id: "wheel",  title: "驱动轮",     params: ["wheel_track", "wheel_radius", "wheel_width"] },
+      { id: "caster", title: "万向轮",     params: ["caster_x", "caster_radius"] },
+      { id: "lidar",  title: "雷达",       params: ["laser_x", "laser_z_from_axle"] },
+    ];
+
+    // 轻量校验：负值或过大的值会标红
+    const RANGES = {
+      body_length:       [0.05, 1.0],
+      body_width:        [0.05, 1.0],
+      body_height:       [0.005, 0.20],
+      front_extent:      [0.01, 0.50],
+      rear_extent:       [0.005, 0.50],
+      wheel_track:       [0.05, 0.50],
+      wheel_radius:      [0.01, 0.10],
+      wheel_width:       [0.005, 0.10],
+      caster_x:          [0.005, 0.50],
+      caster_radius:     [0.003, 0.05],
+      laser_x:           [0.01, 0.50],
+      laser_z_from_axle: [0.01, 0.50],
+    };
+
+    const state = {
+      filePath: null,
+      fileContent: "",
+      loadedValues: {},   // 从文件读到的值（恢复默认用）
+      values: {},         // 当前编辑值
+      busy: false,
+    };
+
+    const $ = (id) => document.getElementById(id);
+    const topSvg = $("topView");
+    const sideSvg = $("sideView");
+    const toast = $("toast");
+
+    function showToast(msg, type = "") {
+      toast.textContent = msg;
+      toast.className = "toast show " + type;
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(() => toast.classList.remove("show"), 2400);
+    }
+
+    function setStatus(text, kind) {
+      $("statusText").textContent = text;
+      const cls = ["status", "dot"];
+      $("status").classList.remove("dirty", "clean", "error");
+      if (kind) $("status").classList.add(kind);
+    }
+
+    function isDirty() {
+      for (const k of Object.keys(SCHEMA)) {
+        const cur = Number(state.values[k]);
+        const base = Number(state.loadedValues[k]);
+        if (Number.isFinite(cur) && Number.isFinite(base) && Math.abs(cur - base) > 1e-9) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    function refreshStatus() {
+      if (state.busy) {
+        setStatus("保存中...", "dirty");
+        return;
+      }
+      if (isDirty()) {
+        setStatus("已修改（未保存）", "dirty");
+      } else {
+        setStatus("已是最新", "clean");
+      }
+    }
+
+    function parseXacro(text) {
+      const values = {};
+      const re = /<xacro:property\s+name="([^"]+)"\s+value="([^"]*)"\s*\/>/g;
+      let m;
+      while ((m = re.exec(text)) !== null) {
+        const num = Number(m[2]);
+        if (Number.isFinite(num)) values[m[1]] = num;
+      }
+      return values;
+    }
+
+    function readInputNumber(input) {
+      if (!input || input.value.trim() === "") return NaN;
+      return Number(input.value);
+    }
+
+    function setXacroProperty(text, name, value) {
+      // 仅替换 value 字段，保留其他属性与排版
+      const re = new RegExp(
+        '(<xacro:property\\s+name="' + name + '"\\s+value=")[^"]*("[^>]*\/>)'
+      );
+      if (!re.test(text)) return text;
+      return text.replace(re, '$1' + Number(value).toString() + '$2');
+    }
+
+    async function apiGet(path) {
+      const r = await fetch('/api/urdf?path=' + encodeURIComponent(path));
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return await r.json();
+    }
+
+    async function apiPut(path, content) {
+      const r = await fetch('/api/urdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path, content }),
+      });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return await r.json();
+    }
+
+    async function apiConfigGet(path) {
+      const r = await fetch('/api/config?path=' + encodeURIComponent(path));
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return await r.json();
+    }
+
+    async function apiConfigPut(path, content) {
+      const r = await fetch('/api/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path, content }),
+      });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return await r.json();
+    }
+
+    function buildForm() {
+      const root = $("params");
+      root.innerHTML = "";
+      for (const g of GROUPS) {
+        const panel = document.createElement("div");
+        panel.className = "panel";
+        panel.innerHTML = '<h2>' + g.title + '</h2>';
+        for (const name of g.params) {
+          const def = SCHEMA[name];
+          const row = document.createElement("div");
+          row.className = "row";
+          row.innerHTML =
+            '<div class="meta">' +
+              '<span class="name">' + def.label + '</span>' +
+              '<span class="hint">' + def.hint + '</span>' +
+            '</div>' +
+            '<div class="input-group">' +
+              '<input type="number" data-param="' + name + '" step="0.001" min="0">' +
+              '<span class="unit">m</span>' +
+              '<button class="ghost" data-reset="' + name + '" title="恢复默认">↺</button>' +
+            '</div>';
+          panel.appendChild(row);
+        }
+        root.appendChild(panel);
+      }
+      root.addEventListener("input", onParamInput);
+      root.addEventListener("click", onParamClick);
+    }
+
+    function fillForm() {
+      for (const name of Object.keys(SCHEMA)) {
+        const input = document.querySelector('input[data-param="' + name + '"]');
+        if (!input) continue;
+        const v = state.values[name];
+        input.value = (v == null || !Number.isFinite(v)) ? "" : Number(v).toFixed(3);
+        validateInput(input);
+        markChanged(input);
+      }
+    }
+
+    function markChanged(input) {
+      const name = input.dataset.param;
+      const cur = readInputNumber(input);
+      const base = Number(state.loadedValues[name]);
+      const changed = Number.isFinite(cur) && Number.isFinite(base) && Math.abs(cur - base) > 1e-9;
+      input.classList.toggle("changed", changed);
+    }
+
+    function validateInput(input) {
+      const name = input.dataset.param;
+      const v = readInputNumber(input);
+      const range = RANGES[name];
+      input.classList.remove("invalid");
+      if (!Number.isFinite(v)) {
+        input.classList.add("invalid");
+        return false;
+      }
+      if (v < 0 || (range && (v < range[0] || v > range[1]))) {
+        input.classList.add("invalid");
+        return false;
+      }
+      return true;
+    }
+
+    function validateModel() {
+      let valid = true;
+      for (const name of Object.keys(SCHEMA)) {
+        const input = document.querySelector('input[data-param="' + name + '"]');
+        valid = validateInput(input) && valid;
+      }
+      const length = Number(state.values.body_length);
+      const extents = Number(state.values.front_extent) + Number(state.values.rear_extent);
+      if (Number.isFinite(length) && Number.isFinite(extents) &&
+          Math.abs(length - extents) > 0.0015) {
+        valid = false;
+        for (const name of ["body_length", "front_extent", "rear_extent"]) {
+          document.querySelector('input[data-param="' + name + '"]').classList.add("invalid");
+        }
+      }
+      return valid;
+    }
+
+    function onParamInput(ev) {
+      const input = ev.target;
+      if (!(input instanceof HTMLInputElement)) return;
+      const name = input.dataset.param;
+      if (!name) return;
+      const v = readInputNumber(input);
+      state.values[name] = Number.isFinite(v) ? v : null;
+      validateInput(input);
+      markChanged(input);
+      renderAll();
+      refreshStatus();
+    }
+
+    function onParamClick(ev) {
+      const btn = ev.target.closest("button[data-reset]");
+      if (!btn) return;
+      const name = btn.dataset.reset;
+      state.values[name] = state.loadedValues[name];
+      fillForm();
+      renderAll();
+      refreshStatus();
+      showToast(SCHEMA[name].label + " 已恢复默认");
+    }
+
+    // ----- 可视化：俯视图 -----
+    function drawTop(values) {
+      const svg = topSvg;
+      svg.innerHTML = "";
+      const W = 600, H = 320;
+      const padX = 40, padY = 50;
+      const front = Number(values.front_extent) || 0;
+      const rear = Number(values.rear_extent) || 0;
+      const bodyL = Number(values.body_length) || 0;
+      const bodyW = Number(values.body_width) || 0;
+      const track = Number(values.wheel_track) || 0;
+      const wheelR = Number(values.wheel_radius) || 0;
+      const wheelW = Number(values.wheel_width) || 0;
+      const casterX = Number(values.caster_x) || 0;
+      const casterR = Number(values.caster_radius) || 0;
+      const laserX = Number(values.laser_x) || 0;
+
+      const xMin = -rear - wheelR - 0.02;
+      const xMax = Math.max(front, casterX, laserX) + wheelR + 0.02;
+      const yMin = -(track / 2 + wheelW / 2) - 0.02;
+      const yMax = -yMin;
+      const scale = Math.min((W - 2 * padX) / (xMax - xMin), (H - 2 * padY) / (yMax - yMin));
+      const cx = W / 2 - (xMin + xMax) / 2 * scale; // 让 0 对准画布中心
+      const cy = H / 2;
+
+      const px = (x) => cx + x * scale;
+      const py = (y) => cy - y * scale; // +Y 在 SVG 里向上
+
+      // 网格（每 50mm）
+      const gridStep = 0.05;
+      for (let gx = Math.ceil(xMin / gridStep) * gridStep; gx <= xMax; gx += gridStep) {
+        const x = px(gx);
+        const isMajor = Math.abs((gx / 0.10) - Math.round(gx / 0.10)) < 1e-6;
+        svg.appendChild(line(x, padY - 6, x, H - padY + 6, isMajor ? "#e1e7ed" : "#eef2f5", 1));
+      }
+      for (let gy = Math.ceil(yMin / gridStep) * gridStep; gy <= yMax; gy += gridStep) {
+        const y = py(gy);
+        const isMajor = Math.abs((gy / 0.10) - Math.round(gy / 0.10)) < 1e-6;
+        svg.appendChild(line(padX - 6, y, W - padX + 6, y, isMajor ? "#e1e7ed" : "#eef2f5", 1));
+      }
+
+      // 轴线
+      svg.appendChild(line(px(xMin), py(0), px(xMax), py(0), "#cbd5dc", 1, "4 4"));
+      svg.appendChild(line(px(0), py(yMin), px(0), py(yMax), "#cbd5dc", 1, "4 4"));
+
+      // 车身中心由驱动轴到前后外廓推导。
+      const bodyCx = (front - rear) / 2;
+      const bx = px(bodyCx - bodyL / 2);
+      const by = py(bodyW / 2);
+      const bw = bodyL * scale;
+      const bh = bodyW * scale;
+      svg.appendChild(rect(bx, by, bw, bh, "#ffb454", "#b6731a", 1.2));
+
+      // 左轮 (+Y)、右轮 (-Y)
+      // 顶视看圆柱：宽 = wheel_width (Y方向)，长 = 2*wheel_radius (X方向)
+      for (const sign of [+1, -1]) {
+        const wy = sign * track / 2;
+        const wx = px(0) - wheelR * scale;
+        const wyPx = py(wy + wheelW / 2);
+        const ww = wheelR * 2 * scale;
+        const wh = wheelW * scale;
+        svg.appendChild(rect(wx, wyPx - wh, ww, wh, "#2c333a", "#000", 0.5));
+      }
+
+      // 万向轮（球，从顶视看是圆）
+      const casterPx = px(casterX);
+      const casterPy = py(0);
+      svg.appendChild(circle(casterPx, casterPy, casterR * scale, "#9aa7b3", "#4b5560", 1));
+
+      // 雷达（顶视为矩形）
+      const lpx = px(laserX);
+      svg.appendChild(rect(lpx - 0.035 * scale, py(0.015), 0.070 * scale, 0.030 * scale, "#d43f3a", "#7a1d1a", 1));
+
+      // 原点标记
+      svg.appendChild(circle(px(0), py(0), 3, "#000"));
+
+      // 尺寸标注
+      const labels = [
+        { x1: -rear, x2: front, y: -bodyW / 2 - 0.012, text: "车身长 " + (bodyL * 1000).toFixed(0) + " mm" },
+      ];
+      for (const lb of labels) {
+        const x1 = px(lb.x1);
+        const x2 = px(lb.x2);
+        const y = py(lb.y);
+        svg.appendChild(line(x1, y, x2, y, "#475569", 1));
+        svg.appendChild(line(x1, y - 3, x1, y + 3, "#475569", 1));
+        svg.appendChild(line(x2, y - 3, x2, y + 3, "#475569", 1));
+        const t = textEl((x1 + x2) / 2, y - 4, lb.text, "#475569", 11, "middle");
+        svg.appendChild(t);
+      }
+
+      // 轮距是 Y 方向尺寸，放在模型左侧，避免压住车轮。
+      const trackDimX = px(-rear - wheelR - 0.012);
+      const trackY1 = py(track / 2);
+      const trackY2 = py(-track / 2);
+      svg.appendChild(line(trackDimX, trackY1, trackDimX, trackY2, "#475569", 1));
+      svg.appendChild(line(trackDimX - 3, trackY1, trackDimX + 3, trackY1, "#475569", 1));
+      svg.appendChild(line(trackDimX - 3, trackY2, trackDimX + 3, trackY2, "#475569", 1));
+      svg.appendChild(textEl(
+        trackDimX - 5, (trackY1 + trackY2) / 2 + 4,
+        "轮距 " + (track * 1000).toFixed(0) + " mm",
+        "#475569", 11, "end"));
+    }
+
+    // ----- 可视化：侧视图 -----
+    function drawSide(values) {
+      const svg = sideSvg;
+      svg.innerHTML = "";
+      const W = 600, H = 280;
+      const padX = 50, padY = 30;
+
+      const front = Number(values.front_extent) || 0;
+      const rear = Number(values.rear_extent) || 0;
+      const bodyL = Number(values.body_length) || 0;
+      const bodyH = Number(values.body_height) || 0;
+      const wheelR = Number(values.wheel_radius) || 0;
+      const casterX = Number(values.caster_x) || 0;
+      const casterR = Number(values.caster_radius) || 0;
+      const laserX = Number(values.laser_x) || 0;
+      const laserZ = Number(values.laser_z_from_axle) || 0;
+
+      const xMin = -rear - wheelR - 0.02;
+      const xMax = Math.max(front, casterX, laserX) + wheelR + 0.02;
+      const zMin = -wheelR - 0.01;
+      const zMax = Math.max(bodyH, laserZ + 0.025) + 0.04;
+      const scale = Math.min((W - 2 * padX) / (xMax - xMin), (H - 2 * padY) / (zMax - zMin));
+      const cx = W / 2 - (xMin + xMax) / 2 * scale;
+      const cz = (zMax + zMin) / 2; // 想让 0 接近中心，再微调
+      const cy = H - padY - (zMax - cz) * scale;
+
+      const px = (x) => cx + x * scale;
+      const pz = (z) => cy - z * scale; // SVG +Y 向上
+
+      // 网格（50 mm）
+      const gridStep = 0.05;
+      for (let gx = Math.ceil(xMin / gridStep) * gridStep; gx <= xMax; gx += gridStep) {
+        const x = px(gx);
+        const isMajor = Math.abs((gx / 0.10) - Math.round(gx / 0.10)) < 1e-6;
+        svg.appendChild(line(x, padY - 6, x, H - padY + 6, isMajor ? "#e1e7ed" : "#eef2f5", 1));
+      }
+      for (let gz = Math.ceil(zMin / gridStep) * gridStep; gz <= zMax; gz += gridStep) {
+        const y = pz(gz);
+        const isMajor = Math.abs((gz / 0.10) - Math.round(gz / 0.10)) < 1e-6;
+        svg.appendChild(line(padX - 6, y, W - padX + 6, y, isMajor ? "#e1e7ed" : "#eef2f5", 1));
+      }
+
+      // 地面
+      svg.appendChild(line(px(xMin), pz(-wheelR), px(xMax), pz(-wheelR), "#7a8694", 2));
+
+      // 驱动轮（侧面看是圆）
+      svg.appendChild(circle(px(0), pz(0), wheelR * scale, "#2c333a", "#000", 1));
+
+      // 万向轮
+      const casterCenterZ = casterR - wheelR;
+      svg.appendChild(circle(px(casterX), pz(casterCenterZ), casterR * scale, "#9aa7b3", "#4b5560", 1));
+
+      // 车身
+      const bodyCenterX = (front - rear) / 2;
+      const bodyCenterZ = 0.021;
+      const bx = px(bodyCenterX - bodyL / 2);
+      const by = pz(bodyCenterZ + bodyH / 2);
+      const bw = bodyL * scale;
+      const bh = bodyH * scale;
+      svg.appendChild(rect(bx, by, bw, bh, "#ffb454", "#b6731a", 1.2));
+
+      // 雷达
+      const laserTop = pz(laserZ + 0.015);
+      const laserBottom = pz(laserZ - 0.015);
+      const laserLeft = px(laserX) - 0.035 * scale;
+      svg.appendChild(rect(laserLeft, laserTop, 0.070 * scale, laserBottom - laserTop, "#d43f3a", "#7a1d1a", 1));
+
+      // 尺寸标注
+      const label = (x1, x2, y, t) => {
+        svg.appendChild(line(x1, y, x2, y, "#475569", 1));
+        svg.appendChild(line(x1, y - 3, x1, y + 3, "#475569", 1));
+        svg.appendChild(line(x2, y - 3, x2, y + 3, "#475569", 1));
+        svg.appendChild(textEl((x1 + x2) / 2, y - 4, t, "#475569", 11, "middle"));
+      };
+      // 车身长度
+      label(px(bodyCenterX - bodyL / 2), px(bodyCenterX + bodyL / 2),
+            pz(bodyCenterZ + bodyH / 2 + 0.012),
+            "车身长 " + (bodyL * 1000).toFixed(0) + " mm");
+      // 雷达高度是 Z 方向尺寸，放在雷达右侧。
+      const laserDimX = px(laserX + 0.045);
+      const laserY1 = pz(0);
+      const laserY2 = pz(laserZ);
+      svg.appendChild(line(laserDimX, laserY1, laserDimX, laserY2, "#475569", 1));
+      svg.appendChild(line(laserDimX - 3, laserY1, laserDimX + 3, laserY1, "#475569", 1));
+      svg.appendChild(line(laserDimX - 3, laserY2, laserDimX + 3, laserY2, "#475569", 1));
+      svg.appendChild(textEl(
+        laserDimX + 5, (laserY1 + laserY2) / 2 + 4,
+        "雷达高 " + (laserZ * 1000).toFixed(0) + " mm",
+        "#475569", 11, "start"));
+    }
+
+    // SVG 元素辅助
+    function line(x1, y1, x2, y2, stroke, width, dash) {
+      const e = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      e.setAttribute("x1", x1); e.setAttribute("y1", y1);
+      e.setAttribute("x2", x2); e.setAttribute("y2", y2);
+      e.setAttribute("stroke", stroke);
+      e.setAttribute("stroke-width", width || 1);
+      if (dash) e.setAttribute("stroke-dasharray", dash);
+      return e;
+    }
+    function rect(x, y, w, h, fill, stroke, sw) {
+      const e = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      e.setAttribute("x", x); e.setAttribute("y", y);
+      e.setAttribute("width", w); e.setAttribute("height", h);
+      e.setAttribute("fill", fill);
+      if (stroke) e.setAttribute("stroke", stroke);
+      if (sw) e.setAttribute("stroke-width", sw);
+      return e;
+    }
+    function circle(cx, cy, r, fill, stroke, sw) {
+      const e = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      e.setAttribute("cx", cx); e.setAttribute("cy", cy); e.setAttribute("r", r);
+      e.setAttribute("fill", fill);
+      if (stroke) e.setAttribute("stroke", stroke);
+      if (sw) e.setAttribute("stroke-width", sw);
+      return e;
+    }
+    function textEl(x, y, t, fill, size, anchor) {
+      const e = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      e.setAttribute("x", x); e.setAttribute("y", y);
+      e.setAttribute("fill", fill || "#18212b");
+      e.setAttribute("font-size", size || 12);
+      if (anchor) e.setAttribute("text-anchor", anchor);
+      e.setAttribute("font-family", "Segoe UI, Microsoft YaHei, Arial, sans-serif");
+      e.textContent = t;
+      return e;
+    }
+
+    function updateSyncInfo() {
+      const track = Number(state.values.wheel_track);
+      const radius = Number(state.values.wheel_radius);
+      if (Number.isFinite(track)) {
+        $("vSep").textContent = (track * 1000).toFixed(2) + " mm  (= " + track.toFixed(4) + " m)";
+      } else {
+        $("vSep").textContent = "--";
+      }
+      if (Number.isFinite(radius)) {
+        const c = 2 * Math.PI * radius;
+        $("vCirc").textContent = (c * 1000).toFixed(2) + " mm  (= " + c.toFixed(4) + " m)";
+      } else {
+        $("vCirc").textContent = "--";
+      }
+    }
+
+    function renderAll() {
+      drawTop(state.values);
+      drawSide(state.values);
+      updateSyncInfo();
+    }
+
+    // ----- 加载 / 保存 -----
+    async function loadFile() {
+      try {
+        const data = await apiGet("my_urdf/robot.urdf.xacro");
+        state.filePath = data.path;
+        state.fileContent = data.content;
+        state.loadedValues = parseXacro(data.content);
+        state.values = {};
+        const missing = Object.keys(SCHEMA).filter(
+          (name) => !Number.isFinite(state.loadedValues[name])
+        );
+        if (missing.length) {
+          throw new Error("Xacro 缺少参数: " + missing.join(", "));
+        }
+        for (const k of Object.keys(SCHEMA)) {
+          if (Number.isFinite(state.loadedValues[k])) {
+            state.values[k] = state.loadedValues[k];
+          }
+        }
+        $("filePath").textContent = data.path;
+        $("filePath").title = data.path;
+        fillForm();
+        renderAll();
+        refreshStatus();
+        showToast("已加载", "success");
+      } catch (err) {
+        setStatus("加载失败", "error");
+        showToast("加载失败: " + err.message, "error");
+      }
+    }
+
+    async function applyChanges() {
+      if (state.busy) return;
+      state.busy = true;
+      refreshStatus();
+      try {
+        if (!validateModel()) {
+          throw new Error("存在非法参数；车身长度还必须等于前、后外廓之和");
+        }
+        let content = state.fileContent;
+        for (const k of Object.keys(SCHEMA)) {
+          const v = state.values[k];
+          if (Number.isFinite(v)) {
+            content = setXacroProperty(content, k, v);
+          }
+        }
+        const res = await apiPut("my_urdf/robot.urdf.xacro", content);
+        state.fileContent = res.path && (await apiGet("my_urdf/robot.urdf.xacro")).content;
+        state.loadedValues = parseXacro(state.fileContent);
+        for (const k of Object.keys(SCHEMA)) {
+          if (Number.isFinite(state.loadedValues[k])) {
+            state.values[k] = state.loadedValues[k];
+          }
+        }
+        fillForm();
+        renderAll();
+        showToast("已保存（备份 " + (res.backup || "无") + "）", "success");
+      } catch (err) {
+        showToast("保存失败: " + err.message, "error");
+      } finally {
+        state.busy = false;
+        refreshStatus();
+      }
+    }
+
+    function resetAll() {
+      for (const k of Object.keys(SCHEMA)) {
+        state.values[k] = state.loadedValues[k];
+      }
+      fillForm();
+      renderAll();
+      refreshStatus();
+      showToast("已恢复为文件当前值");
+    }
+
+    async function syncYaml() {
+      if (state.busy) return;
+      state.busy = true;
+      refreshStatus();
+      try {
+        const track = Number(state.values.wheel_track);
+        const radius = Number(state.values.wheel_radius);
+        const front = Number(state.values.front_extent);
+        const rear = Number(state.values.rear_extent);
+        const halfWidth =
+          (Number(state.values.wheel_track) + Number(state.values.wheel_width)) / 2;
+        if (!validateModel() || ![track, radius, front, rear, halfWidth].every(Number.isFinite)) {
+          throw new Error("模型参数非法，不能同步");
+        }
+        const data = await apiConfigGet("config/base_controller.yaml");
+        const loadedRadius = Number(state.loadedValues.wheel_radius);
+        const circumferenceMatch =
+          data.content.match(/^wheel_circumference:\s*([\d.eE+-]+)\s*$/m);
+        const configuredCircumference = circumferenceMatch
+          ? Number(circumferenceMatch[1])
+          : NaN;
+        const calibrationScale =
+          Number.isFinite(configuredCircumference) &&
+          Number.isFinite(loadedRadius) &&
+          loadedRadius > 0
+            ? configuredCircumference / (2 * Math.PI * loadedRadius)
+            : 1;
+        const circumference = 2 * Math.PI * radius * calibrationScale;
+        const controllerContent = data.content
+          .replace(/^wheel_separation:\s*[\d.eE+-]+\s*$/m,
+                   "wheel_separation: " + track.toFixed(4))
+          .replace(/^wheel_circumference:\s*[\d.eE+-]+\s*$/m,
+                   "wheel_circumference: " + circumference.toFixed(6));
+        const costmap = await apiConfigGet("config/costmap_common.yaml");
+        const footprint =
+          "footprint: [[" + front.toFixed(4) + ", " + halfWidth.toFixed(4) +
+          "], [" + front.toFixed(4) + ", " + (-halfWidth).toFixed(4) +
+          "], [" + (-rear).toFixed(4) + ", " + (-halfWidth).toFixed(4) +
+          "], [" + (-rear).toFixed(4) + ", " + halfWidth.toFixed(4) + "]]";
+        const costmapContent = costmap.content.replace(/^footprint:\s*\[[^\r\n]+\]\s*$/m, footprint);
+        const controllerChanged = controllerContent !== data.content;
+        const costmapChanged = costmapContent !== costmap.content;
+        if (!controllerChanged && !costmapChanged) {
+          showToast("控制与 footprint 已是最新", "success");
+          return;
+        }
+        if (controllerChanged) {
+          await apiConfigPut("config/base_controller.yaml", controllerContent);
+        }
+        if (costmapChanged) {
+          await apiConfigPut("config/costmap_common.yaml", costmapContent);
+        }
+        showToast("已同步控制参数与 footprint", "success");
+      } catch (err) {
+        showToast("同步失败: " + err.message, "error");
+      } finally {
+        state.busy = false;
+        refreshStatus();
+      }
+    }
+
+    function init() {
+      buildForm();
+      $("reloadBtn").addEventListener("click", loadFile);
+      $("resetAllBtn").addEventListener("click", resetAll);
+      $("applyBtn").addEventListener("click", applyChanges);
+      $("syncYamlBtn").addEventListener("click", syncYaml);
+      window.addEventListener("resize", () => renderAll());
+      loadFile();
+    }
+
+    init();
+  </script>
+</body>
+</html>

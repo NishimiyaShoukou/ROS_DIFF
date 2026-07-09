@@ -1,0 +1,13 @@
+<!-- ydlidar_x2.launch - 思岚 X2 雷达驱动封装 -->
+<launch>
+  <!-- 雷达串口设备 -->
+  <arg name="lidar_port" default="/dev/ydlidar"/>
+  <!-- 雷达坐标系 -->
+  <arg name="frame_id" default="laser"/>
+
+  <node pkg="ydlidar_ros_driver" type="ydlidar_ros_driver_node" name="ydlidar" output="screen">
+    <rosparam file="$(find myrobot)/config/ydlidar_x2.yaml" command="load"/>
+    <param name="port" value="$(arg lidar_port)"/>
+    <param name="frame_id" value="$(arg frame_id)"/>
+  </node>
+</launch>

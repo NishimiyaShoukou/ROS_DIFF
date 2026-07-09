@@ -1,0 +1,1053 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>底盘 PID 调试台</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --panel-2: #eef2f5;
+      --text: #18212b;
+      --muted: #65727f;
+      --line: #d8e0e7;
+      --accent: #1677ff;
+      --accent-2: #10a37f;
+      --warn: #c77b00;
+      --danger: #d43f3a;
+      --shadow: 0 8px 24px rgba(20, 34, 48, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+      letter-spacing: 0;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    .app {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-height: 100vh;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 14px 20px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--line);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: 360px minmax(0, 1fr);
+      gap: 16px;
+      padding: 16px;
+      align-items: start;
+    }
+
+    .toolbar,
+    .statusbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .toolbar-field {
+      display: grid;
+      gap: 3px;
+      min-width: 112px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      height: 34px;
+      padding: 0 10px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      color: var(--muted);
+      background: var(--panel-2);
+      white-space: nowrap;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #9aa7b3;
+    }
+
+    .status.connected .dot {
+      background: var(--accent-2);
+    }
+
+    .sidebar,
+    .content {
+      display: grid;
+      gap: 12px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: 14px;
+    }
+
+    .panel h2 {
+      margin: 0 0 12px;
+      font-size: 15px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .grid.two {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    label {
+      display: grid;
+      gap: 5px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    input,
+    select {
+      width: 100%;
+      height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--text);
+      padding: 0 9px;
+    }
+
+    button {
+      height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--panel);
+      color: var(--text);
+      cursor: pointer;
+      padding: 0 12px;
+      white-space: nowrap;
+    }
+
+    button.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    button.good {
+      background: var(--accent-2);
+      border-color: var(--accent-2);
+      color: #fff;
+    }
+
+    button.danger {
+      background: var(--danger);
+      border-color: var(--danger);
+      color: #fff;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .row > * {
+      flex: 1 1 auto;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(120px, 1fr));
+      gap: 10px;
+    }
+
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      background: #fbfcfd;
+      min-height: 70px;
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .metric strong {
+      display: block;
+      margin-top: 6px;
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .chart-wrap {
+      display: grid;
+      gap: 10px;
+    }
+
+    canvas {
+      width: 100%;
+      height: 280px;
+      display: block;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    #pwmChart {
+      height: 190px;
+    }
+
+    #imuChart {
+      height: 220px;
+    }
+
+    .legend {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .legend i {
+      display: inline-block;
+      width: 22px;
+      height: 3px;
+      margin-right: 6px;
+      vertical-align: middle;
+      border-radius: 2px;
+    }
+
+    pre {
+      margin: 0;
+      max-height: 180px;
+      overflow: auto;
+      padding: 10px;
+      background: #101820;
+      color: #dce7ef;
+      border-radius: 8px;
+      font-size: 12px;
+      line-height: 1.45;
+      white-space: pre-wrap;
+    }
+
+    @media (max-width: 980px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+
+      .metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>底盘 PID 调试台</h1>
+      <div class="toolbar">
+        <label class="toolbar-field">波特率
+          <select id="baudRate">
+            <option value="9600">9600</option>
+            <option value="38400">38400</option>
+            <option value="57600">57600</option>
+            <option value="115200" selected>115200</option>
+            <option value="230400">230400</option>
+            <option value="460800">460800</option>
+            <option value="921600">921600</option>
+          </select>
+        </label>
+        <div id="serialStatus" class="status"><span class="dot"></span><span>未连接</span></div>
+        <button id="connectBtn" class="primary">连接串口</button>
+        <button id="debugBtn">开启调试</button>
+        <button id="imuBtn">开启 IMU</button>
+        <button id="stopBtn" class="danger">停止</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="sidebar">
+        <div class="panel">
+          <h2>目标速度</h2>
+          <div class="grid two">
+            <label>左轮
+              <input id="targetLeft" type="number" value="5" step="0.5">
+            </label>
+            <label>右轮
+              <input id="targetRight" type="number" value="5" step="0.5">
+            </label>
+          </div>
+          <div class="row" style="margin-top: 10px;">
+            <button id="sendSpeedBtn" class="good">发送目标</button>
+            <button id="zeroSpeedBtn">清零目标</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>开环电机测试</h2>
+          <div class="grid two">
+            <label>左 PWM
+              <input id="openLeftPwm" type="number" value="300" step="10">
+            </label>
+            <label>右 PWM
+              <input id="openRightPwm" type="number" value="300" step="10">
+            </label>
+          </div>
+          <div class="row" style="margin-top: 10px;">
+            <button id="testLeftBtn">左轮测试</button>
+            <button id="testRightBtn">右轮测试</button>
+          </div>
+          <div class="row" style="margin-top: 10px;">
+            <button id="sendMotorBtn" class="primary">发送 PWM</button>
+            <button id="stopMotorBtn">停止开环</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>速度环 PID</h2>
+          <div class="grid">
+            <label>作用轮
+              <select id="pidWheel">
+                <option value="2">左右同时</option>
+                <option value="0">左轮</option>
+                <option value="1">右轮</option>
+              </select>
+            </label>
+            <div class="grid three" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+              <label>Kp
+                <input id="kp" type="number" value="10" step="0.1">
+              </label>
+              <label>Ki
+                <input id="ki" type="number" value="0.5" step="0.05">
+              </label>
+              <label>Kd
+                <input id="kd" type="number" value="0" step="0.05">
+              </label>
+            </div>
+            <div class="grid two">
+              <label>最大输出
+                <input id="maxOut" type="number" value="1000" step="10">
+              </label>
+              <label>步进限幅
+                <input id="maxStep" type="number" value="50" step="5">
+              </label>
+            </div>
+            <button id="sendPidBtn" class="primary">写入 PID</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>数据</h2>
+          <div class="grid">
+            <button id="getBtn">请求一次数据</button>
+            <button id="clearBtn">清空曲线</button>
+            <button id="copyBtn">复制 CSV</button>
+            <button id="saveBtn">下载 CSV</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>串口日志</h2>
+          <pre id="log"></pre>
+        </div>
+      </section>
+
+      <section class="content">
+        <div class="metrics">
+          <div class="metric"><span>左轮目标</span><strong id="targetLeftNow">--</strong></div>
+          <div class="metric"><span>左轮实际</span><strong id="speedLeftNow">--</strong></div>
+          <div class="metric"><span>左轮误差</span><strong id="leftErr">--</strong></div>
+          <div class="metric"><span>左 PWM</span><strong id="pwmLeftNow">--</strong></div>
+        </div>
+
+        <div class="metrics">
+          <div class="metric"><span>右轮目标</span><strong id="targetRightNow">--</strong></div>
+          <div class="metric"><span>右轮实际</span><strong id="speedRightNow">--</strong></div>
+          <div class="metric"><span>右轮误差</span><strong id="rightErr">--</strong></div>
+          <div class="metric"><span>右 PWM</span><strong id="pwmRightNow">--</strong></div>
+        </div>
+
+        <div class="metrics">
+          <div class="metric"><span>左 Kp/Ki</span><strong id="pidLeftNow">--</strong></div>
+          <div class="metric"><span>右 Kp/Ki</span><strong id="pidRightNow">--</strong></div>
+          <div class="metric"><span>超调估计</span><strong id="overshoot">--</strong></div>
+          <div class="metric"><span>PWM 饱和</span><strong id="satRate">--</strong></div>
+        </div>
+
+        <div class="metrics">
+          <div class="metric"><span>IMU 状态</span><strong id="imuState">--</strong></div>
+          <div class="metric"><span>Pitch</span><strong id="imuPitch">--</strong></div>
+          <div class="metric"><span>Roll</span><strong id="imuRoll">--</strong></div>
+          <div class="metric"><span>Yaw</span><strong id="imuYaw">--</strong></div>
+        </div>
+
+        <div class="panel chart-wrap">
+          <div class="statusbar">
+            <h2 style="margin:0;">速度曲线</h2>
+            <div class="legend">
+              <span><i style="background:#1677ff"></i>目标左</span>
+              <span><i style="background:#8a5cf6"></i>目标右</span>
+              <span><i style="background:#10a37f"></i>实际左</span>
+              <span><i style="background:#f59e0b"></i>实际右</span>
+            </div>
+          </div>
+          <canvas id="speedChart"></canvas>
+          <div class="statusbar">
+            <h2 style="margin:0;">PWM 输出</h2>
+            <div class="legend">
+              <span><i style="background:#d43f3a"></i>左 PWM</span>
+              <span><i style="background:#475569"></i>右 PWM</span>
+            </div>
+          </div>
+          <canvas id="pwmChart"></canvas>
+        </div>
+
+        <div class="panel chart-wrap">
+          <div class="statusbar">
+            <h2 style="margin:0;">IMU 姿态</h2>
+            <div class="legend">
+              <span><i style="background:#1677ff"></i>Pitch</span>
+              <span><i style="background:#10a37f"></i>Roll</span>
+              <span><i style="background:#d43f3a"></i>Yaw</span>
+            </div>
+            <button id="clearImuBtn">清空 IMU</button>
+            <button id="copyImuBtn">复制 IMU CSV</button>
+          </div>
+          <canvas id="imuChart"></canvas>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const state = {
+      port: null,
+      reader: null,
+      writer: null,
+      connected: false,
+      busy: false,
+      debug: false,
+      imu: false,
+      rxBuffer: "",
+      samples: [],
+      imuSamples: [],
+      maxSamples: 600,
+      maxImuSamples: 600,
+      telemetrySeen: false,
+      drawPending: false,
+      lastDrawTime: 0,
+    };
+
+    const el = (id) => document.getElementById(id);
+    const speedCanvas = el("speedChart");
+    const pwmCanvas = el("pwmChart");
+    const imuCanvas = el("imuChart");
+    const speedCtx = speedCanvas.getContext("2d");
+    const pwmCtx = pwmCanvas.getContext("2d");
+    const imuCtx = imuCanvas.getContext("2d");
+
+    function log(line) {
+      const box = el("log");
+      const time = new Date().toLocaleTimeString();
+      box.textContent += `[${time}] ${line}\n`;
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function setStatus(text, connected) {
+      const status = el("serialStatus");
+      status.querySelector("span:last-child").textContent = text;
+      status.classList.toggle("connected", connected);
+      el("connectBtn").textContent = connected ? "断开串口" : "连接串口";
+      el("baudRate").disabled = connected;
+    }
+
+    function setImuButton() {
+      el("imuBtn").textContent = state.imu ? "关闭 IMU" : "开启 IMU";
+    }
+
+    async function sendLine(line) {
+      if (!state.writer) {
+        log("串口未连接");
+        return;
+      }
+      await state.writer.write(new TextEncoder().encode(line + "\n"));
+      log("TX " + line);
+    }
+
+    async function connectSerial() {
+      if (state.busy) {
+        log("正在处理上一次操作，请稍候");
+        return;
+      }
+      if (state.connected) {
+        await disconnectSerial();
+        return;
+      }
+
+      if (!("serial" in navigator)) {
+        log("当前浏览器不支持 Web Serial");
+        return;
+      }
+
+      state.busy = true;
+      try {
+        const baudRate = Number(el("baudRate").value) || 115200;
+        state.port = await navigator.serial.requestPort();
+        await state.port.open({ baudRate });
+        state.writer = state.port.writable.getWriter();
+        state.connected = true;
+        state.telemetrySeen = false;
+        setStatus(`已连接 ${baudRate}`, true);
+        log(`串口已打开 ${baudRate} baud`);
+        readLoop();
+
+        // 连接后默认开启调试，按用户上次记录的 IMU 偏好决定是否立即打开 IMU
+        state.debug = true;
+        el("debugBtn").textContent = "关闭调试";
+        await sendLine("$DBG,1");
+        await new Promise(resolve => setTimeout(resolve, 100));
+        await sendLine("$GET");
+        if (state.imu) {
+          await sendLine("$IMU,1");
+        }
+        setImuButton();
+      } catch (err) {
+        log("连接失败: " + err.message);
+        await disconnectSerial();
+      } finally {
+        state.busy = false;
+      }
+    }
+
+    async function disconnectSerial() {
+      if (state.busy && !state.connected) {
+        return;
+      }
+      state.busy = true;
+      try {
+        // 断开前先复位下位机状态，避免重连时出现状态错位
+        if (state.connected && state.writer) {
+          try {
+            await sendLine("$STOP");
+            await new Promise(resolve => setTimeout(resolve, 30));
+            await sendLine("$IMU,0");
+            await new Promise(resolve => setTimeout(resolve, 30));
+            await sendLine("$DBG,0");
+            await new Promise(resolve => setTimeout(resolve, 30));
+          } catch (err) {
+            log("复位下位机失败: " + err.message);
+          }
+        }
+        if (state.reader) {
+          await state.reader.cancel();
+          state.reader.releaseLock();
+        }
+        if (state.writer) {
+          state.writer.releaseLock();
+        }
+        if (state.port) {
+          await state.port.close();
+        }
+      } catch (err) {
+        log("断开异常: " + err.message);
+      }
+      state.reader = null;
+      state.writer = null;
+      state.port = null;
+      state.connected = false;
+      state.debug = false;
+      state.imu = false;
+      el("debugBtn").textContent = "开启调试";
+      setImuButton();
+      setStatus("未连接", false);
+      state.samples = [];
+      state.imuSamples = [];
+      drawAll();
+      state.busy = false;
+    }
+
+    async function readLoop() {
+      const decoder = new TextDecoder();
+      state.reader = state.port.readable.getReader();
+      try {
+        while (state.connected) {
+          const { value, done } = await state.reader.read();
+          if (done) break;
+          state.rxBuffer += decoder.decode(value, { stream: true });
+          consumeRx();
+        }
+      } catch (err) {
+        log("RX 异常: " + err.message);
+      }
+    }
+
+    function consumeRx() {
+      let idx;
+      while ((idx = state.rxBuffer.indexOf("\n")) >= 0) {
+        const line = state.rxBuffer.slice(0, idx).trim();
+        state.rxBuffer = state.rxBuffer.slice(idx + 1);
+        if (line) handleLine(line);
+      }
+      scheduleDraw();
+    }
+
+    function scheduleDraw() {
+      if (state.drawPending) return;
+      state.drawPending = true;
+      requestAnimationFrame(() => {
+        state.drawPending = false;
+        drawAll();
+      });
+    }
+
+    function handleLine(line) {
+      const telemetryAt = line.indexOf("$TEL,");
+      if (telemetryAt >= 0) {
+        parseTelemetry(line.slice(telemetryAt));
+        return;
+      }
+      const imuAt = line.indexOf("$IMU,");
+      if (imuAt >= 0) {
+        parseImuTelemetry(line.slice(imuAt));
+        return;
+      }
+      const ackAt = line.indexOf("$ACK");
+      if (ackAt >= 0) {
+        log("RX " + line.slice(ackAt));
+        return;
+      }
+      log("RX " + line);
+    }
+
+    function parseTelemetry(line) {
+      const p = line.split(",");
+      if (p.length < 14) {
+        log(`收到不完整的 $TEL（${p.length}/14 字段）`);
+        return;
+      }
+      const sample = {
+        t: Number(p[1]),
+        targetL: Number(p[2]) / 100,
+        targetR: Number(p[3]) / 100,
+        speedL: Number(p[4]) / 100,
+        speedR: Number(p[5]) / 100,
+        pwmL: Number(p[6]),
+        pwmR: Number(p[7]),
+        kpL: Number(p[8]) / 1000,
+        kiL: Number(p[9]) / 1000,
+        kdL: Number(p[10]) / 1000,
+        kpR: Number(p[11]) / 1000,
+        kiR: Number(p[12]) / 1000,
+        kdR: Number(p[13]) / 1000,
+      };
+      if (Object.values(sample).some(value => !Number.isFinite(value))) {
+        log("收到无法解析的 $TEL: " + line);
+        return;
+      }
+      state.samples.push(sample);
+      if (state.samples.length > state.maxSamples) state.samples.shift();
+      if (!state.telemetrySeen) {
+        state.telemetrySeen = true;
+        log("RX $TEL，已开始采样");
+      }
+      updateMetrics();
+    }
+
+    function parseImuTelemetry(line) {
+      const p = line.split(",");
+      if (p.length < 15) return;
+      const sample = {
+        t: Number(p[1]),
+        ready: Number(p[2]),
+        error: Number(p[3]),
+        fail: Number(p[4]),
+        pitch: Number(p[5]) / 100,
+        roll: Number(p[6]) / 100,
+        yaw: Number(p[7]) / 100,
+        aacx: Number(p[8]),
+        aacy: Number(p[9]),
+        aacz: Number(p[10]),
+        gyrox: Number(p[11]),
+        gyroy: Number(p[12]),
+        gyroz: Number(p[13]),
+        temp: Number(p[14]) / 100,
+      };
+      state.imuSamples.push(sample);
+      if (state.imuSamples.length > state.maxImuSamples) state.imuSamples.shift();
+      updateImuMetrics();
+    }
+
+    function resizeCanvas(canvas, ctx) {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      const w = Math.max(320, Math.floor(rect.width * dpr));
+      const h = Math.max(160, Math.floor(rect.height * dpr));
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w;
+        canvas.height = h;
+      }
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      return { w: rect.width, h: rect.height };
+    }
+
+    function getRange(samples, keys) {
+      let min = Infinity;
+      let max = -Infinity;
+      for (const s of samples) {
+        for (const key of keys) {
+          min = Math.min(min, s[key]);
+          max = Math.max(max, s[key]);
+        }
+      }
+      if (!Number.isFinite(min) || !Number.isFinite(max)) return { min: -1, max: 1 };
+      if (Math.abs(max - min) < 1e-3) {
+        max += 1;
+        min -= 1;
+      }
+      const pad = (max - min) * 0.12;
+      return { min: min - pad, max: max + pad };
+    }
+
+    function drawChart(canvas, ctx, samples, series, range) {
+      const { w, h } = resizeCanvas(canvas, ctx);
+      const left = 44;
+      const right = 12;
+      const top = 16;
+      const bottom = 26;
+      const plotW = w - left - right;
+      const plotH = h - top - bottom;
+
+      ctx.clearRect(0, 0, w, h);
+      ctx.strokeStyle = "#d8e0e7";
+      ctx.lineWidth = 1;
+      ctx.fillStyle = "#65727f";
+      ctx.font = "12px Segoe UI";
+
+      for (let i = 0; i <= 4; i++) {
+        const y = top + (plotH * i) / 4;
+        ctx.beginPath();
+        ctx.moveTo(left, y);
+        ctx.lineTo(left + plotW, y);
+        ctx.stroke();
+        const value = range.max - ((range.max - range.min) * i) / 4;
+        ctx.fillText(value.toFixed(1), 6, y + 4);
+      }
+
+      if (samples.length < 2) return;
+      const firstT = samples[0].t;
+      const lastT = samples[samples.length - 1].t;
+      const span = Math.max(1, lastT - firstT);
+
+      for (const item of series) {
+        ctx.strokeStyle = item.color;
+        ctx.lineWidth = item.width || 2;
+        ctx.beginPath();
+        samples.forEach((s, index) => {
+          const x = left + ((s.t - firstT) / span) * plotW;
+          const y = top + (1 - (s[item.key] - range.min) / (range.max - range.min)) * plotH;
+          if (index === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+      }
+    }
+
+    function drawAll() {
+      drawChart(speedCanvas, speedCtx, state.samples, [
+        { key: "targetL", color: "#1677ff", width: 1.5 },
+        { key: "targetR", color: "#8a5cf6", width: 1.5 },
+        { key: "speedL", color: "#10a37f", width: 2 },
+        { key: "speedR", color: "#f59e0b", width: 2 },
+      ], getRange(state.samples, ["targetL", "targetR", "speedL", "speedR"]));
+
+      drawChart(pwmCanvas, pwmCtx, state.samples, [
+        { key: "pwmL", color: "#d43f3a", width: 2 },
+        { key: "pwmR", color: "#475569", width: 2 },
+      ], getRange(state.samples, ["pwmL", "pwmR"]));
+
+      drawImu();
+    }
+
+    function drawImu() {
+      drawChart(imuCanvas, imuCtx, state.imuSamples, [
+        { key: "pitch", color: "#1677ff", width: 2 },
+        { key: "roll", color: "#10a37f", width: 2 },
+        { key: "yaw", color: "#d43f3a", width: 2 },
+      ], getRange(state.imuSamples, ["pitch", "roll", "yaw"]));
+    }
+
+    function updateMetrics() {
+      const recent = state.samples.slice(-100);
+      if (recent.length === 0) {
+        el("targetLeftNow").textContent = "--";
+        el("speedLeftNow").textContent = "--";
+        el("targetRightNow").textContent = "--";
+        el("speedRightNow").textContent = "--";
+        el("leftErr").textContent = "--";
+        el("rightErr").textContent = "--";
+        el("pwmLeftNow").textContent = "--";
+        el("pwmRightNow").textContent = "--";
+        el("pidLeftNow").textContent = "--";
+        el("pidRightNow").textContent = "--";
+        el("overshoot").textContent = "--";
+        el("satRate").textContent = "--";
+        return;
+      }
+      const avg = (key) => recent.reduce((s, r) => s + r[key], 0) / recent.length;
+      const last = recent[recent.length - 1];
+      const target = Math.max(Math.abs(last.targetL), Math.abs(last.targetR), 0.001);
+      const peakL = Math.max(...recent.map(s => Math.abs(s.speedL)));
+      const peakR = Math.max(...recent.map(s => Math.abs(s.speedR)));
+      const overshoot = Math.max(0, (Math.max(peakL, peakR) - target) / target * 100);
+      const sat = recent.filter(s => Math.abs(s.pwmL) >= 990 || Math.abs(s.pwmR) >= 990).length / recent.length * 100;
+
+      el("targetLeftNow").textContent = avg("targetL").toFixed(2);
+      el("speedLeftNow").textContent = avg("speedL").toFixed(2);
+      el("targetRightNow").textContent = avg("targetR").toFixed(2);
+      el("speedRightNow").textContent = avg("speedR").toFixed(2);
+      el("leftErr").textContent = (avg("targetL") - avg("speedL")).toFixed(2);
+      el("rightErr").textContent = (avg("targetR") - avg("speedR")).toFixed(2);
+      el("pwmLeftNow").textContent = avg("pwmL").toFixed(0);
+      el("pwmRightNow").textContent = avg("pwmR").toFixed(0);
+      el("pidLeftNow").textContent = `Kp ${last.kpL.toFixed(3)} / Ki ${last.kiL.toFixed(3)}`;
+      el("pidRightNow").textContent = `Kp ${last.kpR.toFixed(3)} / Ki ${last.kiR.toFixed(3)}`;
+      el("overshoot").textContent = overshoot.toFixed(1) + "%";
+      el("satRate").textContent = sat.toFixed(0) + "%";
+    }
+
+    function updateImuMetrics() {
+      const recent = state.imuSamples.slice(-1);
+      if (recent.length === 0) {
+        el("imuState").textContent = "--";
+        el("imuPitch").textContent = "--";
+        el("imuRoll").textContent = "--";
+        el("imuYaw").textContent = "--";
+        return;
+      }
+
+      const last = recent[0];
+      const errHex = "0x" + last.error.toString(16).toUpperCase().padStart(2, "0");
+      el("imuState").textContent = last.ready ? "READY" : errHex;
+      el("imuPitch").textContent = last.pitch.toFixed(2) + " deg";
+      el("imuRoll").textContent = last.roll.toFixed(2) + " deg";
+      el("imuYaw").textContent = last.yaw.toFixed(2) + " deg";
+    }
+
+    function csvText() {
+      const header = "time_ms,target_left,target_right,speed_left,speed_right,pwm_left,pwm_right,kp_left,ki_left,kd_left,kp_right,ki_right,kd_right";
+      const rows = state.samples.map(s => [
+        s.t, s.targetL, s.targetR, s.speedL, s.speedR, s.pwmL, s.pwmR,
+        s.kpL, s.kiL, s.kdL, s.kpR, s.kiR, s.kdR
+      ].join(","));
+      return [header, ...rows].join("\n");
+    }
+
+    async function copyText(text) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        try {
+          await navigator.clipboard.writeText(text);
+          return;
+        } catch (err) {
+          log("剪贴板 API 不可用，尝试兼容模式: " + err.message);
+        }
+      }
+
+      const area = document.createElement("textarea");
+      area.value = text;
+      area.style.position = "fixed";
+      area.style.left = "-9999px";
+      document.body.appendChild(area);
+      area.focus();
+      area.select();
+      const copied = document.execCommand("copy");
+      document.body.removeChild(area);
+      if (!copied) throw new Error("浏览器拒绝复制，请改用下载 CSV");
+    }
+
+    function imuCsvText() {
+      const header = "time_ms,ready,error,fail,pitch,roll,yaw,aacx,aacy,aacz,gyrox,gyroy,gyroz,temp";
+      const rows = state.imuSamples.map(s => [
+        s.t, s.ready, s.error, s.fail, s.pitch, s.roll, s.yaw,
+        s.aacx, s.aacy, s.aacz, s.gyrox, s.gyroy, s.gyroz, s.temp
+      ].join(","));
+      return [header, ...rows].join("\n");
+    }
+
+    function clampPwm(value) {
+      if (!Number.isFinite(value)) return 0;
+      return Math.max(-1000, Math.min(1000, Math.round(value)));
+    }
+
+    function sendMotorPwm(left, right) {
+      const leftPwm = clampPwm(left);
+      const rightPwm = clampPwm(right);
+      el("openLeftPwm").value = String(leftPwm);
+      el("openRightPwm").value = String(rightPwm);
+      sendLine(`$MOT,${leftPwm},${rightPwm}`);
+    }
+
+    el("connectBtn").addEventListener("click", () => connectSerial().catch(err => log(err.message)));
+    el("debugBtn").addEventListener("click", async () => {
+      if (!state.connected) {
+        log("请先连接串口");
+        return;
+      }
+      state.debug = !state.debug;
+      await sendLine(state.debug ? "$DBG,1" : "$DBG,0");
+      el("debugBtn").textContent = state.debug ? "关闭调试" : "开启调试";
+      if (!state.debug) {
+        state.imu = false;
+        await sendLine("$IMU,0");
+        setImuButton();
+      }
+    });
+    el("imuBtn").addEventListener("click", async () => {
+      if (!state.connected) {
+        log("请先连接串口");
+        return;
+      }
+      state.imu = !state.imu;
+      await sendLine(state.imu ? "$IMU,1" : "$IMU,0");
+      setImuButton();
+    });
+    el("stopBtn").addEventListener("click", () => sendLine("$STOP"));
+    el("getBtn").addEventListener("click", () => sendLine("$GET"));
+    el("sendSpeedBtn").addEventListener("click", () => {
+      const left = Math.round(Number(el("targetLeft").value) * 100);
+      const right = Math.round(Number(el("targetRight").value) * 100);
+      sendLine(`$SPD,${left},${right}`);
+    });
+    el("zeroSpeedBtn").addEventListener("click", () => {
+      el("targetLeft").value = "0";
+      el("targetRight").value = "0";
+      sendLine("$SPD,0,0");
+    });
+    el("testLeftBtn").addEventListener("click", () => {
+      sendMotorPwm(Number(el("openLeftPwm").value), 0);
+    });
+    el("testRightBtn").addEventListener("click", () => {
+      sendMotorPwm(0, Number(el("openRightPwm").value));
+    });
+    el("sendMotorBtn").addEventListener("click", () => {
+      sendMotorPwm(Number(el("openLeftPwm").value), Number(el("openRightPwm").value));
+    });
+    el("stopMotorBtn").addEventListener("click", () => {
+      sendLine("$STOP");
+    });
+    el("sendPidBtn").addEventListener("click", () => {
+      const wheel = el("pidWheel").value;
+      const kp = Math.round(Number(el("kp").value) * 1000);
+      const ki = Math.round(Number(el("ki").value) * 1000);
+      const kd = Math.round(Number(el("kd").value) * 1000);
+      const maxOut = Math.round(Number(el("maxOut").value));
+      const maxStep = Math.round(Number(el("maxStep").value));
+      sendLine(`$PID,${wheel},${kp},${ki},${kd},${maxOut},${maxStep}`);
+    });
+    el("clearBtn").addEventListener("click", () => {
+      state.samples = [];
+      drawAll();
+      updateMetrics();
+    });
+    el("clearImuBtn").addEventListener("click", () => {
+      state.imuSamples = [];
+      drawImu();
+      updateImuMetrics();
+    });
+    el("copyBtn").addEventListener("click", async () => {
+      if (!state.samples.length) {
+        log("没有可复制的 $TEL 样本；请确认速度数字或曲线正在更新");
+        return;
+      }
+      try {
+        await copyText(csvText());
+        log(`CSV 已复制，共 ${state.samples.length} 条`);
+      } catch (err) {
+        log("复制 CSV 失败: " + err.message);
+      }
+    });
+    el("copyImuBtn").addEventListener("click", async () => {
+      if (!state.imuSamples.length) {
+        log("没有可复制的 $IMU 样本");
+        return;
+      }
+      try {
+        await copyText(imuCsvText());
+        log(`IMU CSV 已复制，共 ${state.imuSamples.length} 条`);
+      } catch (err) {
+        log("复制 IMU CSV 失败: " + err.message);
+      }
+    });
+    el("saveBtn").addEventListener("click", () => {
+      const blob = new Blob([csvText()], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `pid_${Date.now()}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      // 推迟 revoke，避免部分浏览器在下载尚未建立连接时就撤销 URL
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+    let resizeTimer;
+    window.addEventListener("resize", () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(drawAll, 100);
+    });
+    setImuButton();
+    drawAll();
+  </script>
+</body>
+</html>

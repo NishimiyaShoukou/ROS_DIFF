@@ -1,32 +1,63 @@
-# Prerequisites
-*.d
+# ROS/catkin generated files
+**/catkin_ws/build/
+**/catkin_ws/devel/
+**/catkin_ws/install/
+**/catkin_ws/log/
+**/catkin_ws/logs/
+**/catkin_ws/.catkin_tools/
+*.bag
+*.bag.active
 
-# Compiled Object files
+# C/C++ build output
+*.d
 *.slo
 *.lo
 *.o
 *.obj
-
-# Precompiled Headers
 *.gch
 *.pch
-
-# Compiled Dynamic libraries
 *.so
 *.dylib
 *.dll
-
-# Fortran module files
 *.mod
 *.smod
-
-# Compiled Static libraries
 *.lai
 *.la
 *.a
 *.lib
-
-# Executables
 *.exe
 *.out
 *.app
+
+# STM32CubeIDE / Keil generated files
+**/Debug/
+**/Release/
+**/MDK-ARM/Objects/
+**/MDK-ARM/Listings/
+**/MDK-ARM/*/*.crf
+**/MDK-ARM/*/*.dep
+**/MDK-ARM/*/*.iex
+**/MDK-ARM/*/*.lnp
+**/MDK-ARM/*/*.sct
+**/MDK-ARM/*/*.htm
+*.axf
+*.elf
+*.hex
+*.bin
+*.map
+*.uvguix.*
+*.scvd
+
+# Editors, assistants, and operating systems
+**/.agents/
+**/.claude/
+rspi/
+.vscode/
+.idea/
+__pycache__/
+*.py[cod]
+.DS_Store
+Thumbs.db
+
+# v1 is an immutable historical snapshot, including its previously tracked artifacts.
+!ros_diff_v1/**

@@ -1,0 +1,42 @@
+<!--
+  bringup.launch - v2 核心启动入口
+  加载 URDF 模型、启动 robot_state_publisher 和 base_controller 底盘节点，
+  按需启用 ydlidar_x2 雷达。是 mapping_v2 / navigation_v2 的基础依赖。
+-->
+<launch>
+  <!-- 底盘串口设备 -->
+  <arg name="serial_port" default="/dev/chassis"/>
+  <!-- 雷达串口设备 -->
+  <arg name="lidar_port" default="/dev/ydlidar"/>
+  <!-- 是否启用雷达 -->
+  <arg name="enable_lidar" default="true"/>
+  <!-- base_controller 是否发布 odom -> base_footprint 的 TF -->
+  <arg name="publish_tf" default="true"/>
+  <!-- Optional robot_localization EKF. Keep false until wheel and IMU signs are verified. -->
+  <arg name="use_ekf" default="false"/>
+  <!-- 是否使用 IMU 偏航角融合里程计（base_controller 内部参数） -->
+  <arg name="use_imu_yaw" default="true"/>
+
+  <param name="robot_description"
+         command="$(find xacro)/xacro $(find myrobot)/my_urdf/robot.urdf.xacro"/>
+
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
+    <param name="publish_frequency" value="20.0"/>
+  </node>
+
+  <node pkg="myrobot" type="base_controller" name="base_controller" output="screen">
+    <rosparam file="$(find myrobot)/config/base_controller.yaml" command="load"/>
+    <param name="serial_port" value="$(arg serial_port)"/>
+    <param name="publish_tf"
+           value="$(eval arg('publish_tf') and not arg('use_ekf'))"/>
+    <param name="publish_fused_odom"
+           value="$(eval not arg('use_ekf'))"/>
+    <param name="use_imu_yaw" value="$(arg use_imu_yaw)"/>
+  </node>
+
+  <include if="$(arg use_ekf)" file="$(find myrobot)/launch/state_estimation.launch"/>
+
+  <include if="$(arg enable_lidar)" file="$(find myrobot)/launch/ydlidar_x2.launch">
+    <arg name="lidar_port" value="$(arg lidar_port)"/>
+  </include>
+</launch>

@@ -1,0 +1,56 @@
+serial_port: /dev/chassis
+baud_rate: 115200
+control_rate: 50.0
+
+odom_frame: odom
+base_frame: base_footprint
+imu_frame: imu_link
+odom_topic: odom
+wheel_odom_topic: wheel/odom
+imu_topic: imu/data
+battery_topic: battery_state
+publish_tf: true
+publish_fused_odom: true
+publish_wheel_odom: true
+publish_imu: true
+publish_battery: true
+battery_publish_rate: 2.0
+
+# Measured geometry and floor-calibrated rolling values.
+# 148 mm outside width - one 19 mm wheel width = 129 mm center spacing.
+wheel_separation: 0.129
+# Effective circumference: theoretical 48 mm diameter * 0.96 floor scale.
+wheel_circumference: 0.144764589
+# 13 encoder lines * TIM encoder x4 * 20:1 gearbox.
+# Verify by rotating one wheel exactly one revolution and reading the count delta.
+encoder_counts_per_wheel_rev: 1040.0
+
+# v2 STM32 protocol:
+#   protocol 2.1 uses CRC-8/MAXIM over command frame bytes 2..9
+#   command int16 = target output-shaft rpm * command_speed_scale
+#   feedback int16 = measured output-shaft rpm * feedback_speed_scale
+#   feedback yaw int16 = yaw_degree * yaw_scale
+command_speed_scale: 100.0
+feedback_speed_scale: 100.0
+yaw_scale: 100.0
+control_flag: 7
+command_timeout: 0.3
+feedback_stop_timeout: 0.3
+feedback_reconnect_timeout: 2.0
+reconnect_period: 2.0
+max_integration_dt: 0.2
+
+max_linear_velocity: 0.30
+max_angular_velocity: 1.00
+use_imu_yaw: true
+imu_yaw_weight: 0.8
+max_imu_yaw_rate: 3.0
+imu_yaw_variance: 0.03
+# MPU6050 module is mounted component-side down, so its Z/yaw sign is inverted.
+invert_imu_yaw: true
+
+swap_left_right: false
+invert_left_command: false
+invert_right_command: false
+invert_left_feedback: false
+invert_right_feedback: false

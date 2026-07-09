@@ -1,0 +1,143 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="ros_diff_v2">
+
+  <!-- Measured geometry, metres. -->
+  <xacro:property name="body_length" value="0.146"/>
+  <xacro:property name="body_width" value="0.110"/>
+  <xacro:property name="body_height" value="0.030"/>
+  <xacro:property name="front_extent" value="0.122"/>
+  <xacro:property name="rear_extent" value="0.024"/>
+  <xacro:property name="wheel_track" value="0.129"/>
+  <xacro:property name="wheel_radius" value="0.024"/>
+  <xacro:property name="wheel_width" value="0.019"/>
+  <xacro:property name="caster_x" value="0.098"/>
+  <xacro:property name="caster_radius" value="0.010"/>
+  <xacro:property name="laser_x" value="0.080"/>
+  <xacro:property name="laser_z_from_axle" value="0.130"/>
+
+  <!-- Ground projection of the driven-wheel axle midpoint. -->
+  <link name="base_footprint"/>
+
+  <!-- REP-103: +X forward toward the caster, +Y left, +Z up. -->
+  <joint name="base_footprint_joint" type="fixed">
+    <origin xyz="0 0 ${wheel_radius}" rpy="0 0 0"/>
+    <parent link="base_footprint"/>
+    <child link="base_link"/>
+  </joint>
+
+  <!-- The plate origin follows the configured front/rear axle extents. -->
+  <link name="base_link">
+    <visual>
+      <origin xyz="${(front_extent - rear_extent) / 2.0} 0 0.021" rpy="0 0 0"/>
+      <geometry>
+        <box size="${body_length} ${body_width} ${body_height}"/>
+      </geometry>
+      <material name="body_yellow">
+        <color rgba="1.0 0.55 0.05 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="${(front_extent - rear_extent) / 2.0} 0 0.021" rpy="0 0 0"/>
+      <geometry>
+        <box size="${body_length} ${body_width} ${body_height}"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="left_wheel_joint" type="fixed">
+    <origin xyz="0 ${wheel_track / 2.0} 0" rpy="0 0 0"/>
+    <parent link="base_link"/>
+    <child link="left_wheel_link"/>
+  </joint>
+
+  <link name="left_wheel_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="1.57079632679 0 0"/>
+      <geometry>
+        <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+      </geometry>
+      <material name="wheel_black">
+        <color rgba="0.05 0.05 0.05 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="1.57079632679 0 0"/>
+      <geometry>
+        <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="right_wheel_joint" type="fixed">
+    <origin xyz="0 ${-wheel_track / 2.0} 0" rpy="0 0 0"/>
+    <parent link="base_link"/>
+    <child link="right_wheel_link"/>
+  </joint>
+
+  <link name="right_wheel_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="1.57079632679 0 0"/>
+      <geometry>
+        <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+      </geometry>
+      <material name="wheel_black"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="1.57079632679 0 0"/>
+      <geometry>
+        <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- Caster contact is x=+98 mm; radius is visual-only until measured. -->
+  <joint name="front_caster_joint" type="fixed">
+    <origin xyz="${caster_x} 0 ${caster_radius - wheel_radius}" rpy="0 0 0"/>
+    <parent link="base_link"/>
+    <child link="front_caster_link"/>
+  </joint>
+
+  <link name="front_caster_link">
+    <visual>
+      <geometry>
+        <sphere radius="${caster_radius}"/>
+      </geometry>
+      <material name="caster_gray">
+        <color rgba="0.35 0.35 0.35 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  <!--
+    IMU location remains approximate. The physical module is component-side
+    down; base_controller corrects its yaw sign. imu_link is the corrected
+    logical ROS frame, so it remains aligned with base_link.
+  -->
+  <joint name="imu_joint" type="fixed">
+    <origin xyz="0.049 0 0.035" rpy="0 0 0"/>
+    <parent link="base_link"/>
+    <child link="imu_link"/>
+  </joint>
+  <link name="imu_link"/>
+
+  <!-- Lidar zero points backward, so laser +X is rotated pi from base +X. -->
+  <joint name="base_laser_joint" type="fixed">
+    <origin xyz="${laser_x} 0 ${laser_z_from_axle}"
+            rpy="0 0 3.141592653589793"/>
+    <parent link="base_link"/>
+    <child link="laser"/>
+  </joint>
+
+  <link name="laser">
+    <visual>
+      <origin xyz="0 0 0.015" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.035" length="0.030"/>
+      </geometry>
+      <material name="lidar_black">
+        <color rgba="0.02 0.02 0.02 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+</robot>

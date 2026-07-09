@@ -1,0 +1,17 @@
+<!-- usb_cam-test.launch - USB 摄像头节点（640x480 @ YUYV，mmap IO） -->
+<launch>
+  <node name="usb_cam" pkg="usb_cam" type="usb_cam_node" output="screen" >
+    <!-- 摄像头设备节点 -->
+    <param name="video_device" value="/dev/video1" />
+    <!-- 图像宽度（像素） -->
+    <param name="image_width" value="640" />
+    <!-- 图像高度（像素） -->
+    <param name="image_height" value="480" />
+    <!-- 像素格式：YUYV -->
+    <param name="pixel_format" value="yuyv" />
+    <!-- 摄像头坐标系 -->
+    <param name="camera_frame_id" value="usb_cam" />
+    <!-- IO 方式：mmap 提升吞吐 -->
+    <param name="io_method" value="mmap"/>
+  </node>
+</launch>

@@ -1,0 +1,29 @@
+<!--
+  cam_remote.launch - 远程/PC 端调试入口
+  在 bringup 基础上按需启用 USB 摄像头（usb_cam-test.launch）和 rviz。
+-->
+<launch>
+  <!-- 底盘串口设备（透传给 bringup） -->
+  <arg name="serial_port" default="/dev/chassis"/>
+  <!-- 雷达串口设备（透传给 bringup） -->
+  <arg name="lidar_port" default="/dev/ydlidar"/>
+  <!-- 是否启用雷达 -->
+  <arg name="enable_lidar" default="true"/>
+  <!-- 是否启用 USB 摄像头 -->
+  <arg name="enable_camera" default="true"/>
+  <!-- 是否同时启动 rviz 可视化 -->
+  <arg name="rviz" default="false"/>
+  <arg name="use_ekf" default="false"/>
+
+  <include file="$(find myrobot)/launch/bringup.launch">
+    <arg name="serial_port" value="$(arg serial_port)"/>
+    <arg name="lidar_port" value="$(arg lidar_port)"/>
+    <arg name="enable_lidar" value="$(arg enable_lidar)"/>
+    <arg name="use_ekf" value="$(arg use_ekf)"/>
+  </include>
+
+  <include if="$(arg enable_camera)" file="$(find myrobot)/launch/usb_cam-test.launch"/>
+
+  <node if="$(arg rviz)" pkg="rviz" type="rviz" name="rviz"
+        args="-d $(find myrobot)/map/my_map.rviz"/>
+</launch>

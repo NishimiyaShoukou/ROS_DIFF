@@ -1,0 +1,44 @@
+<!--
+  navigation_v2.launch - v2 导航启动入口
+  在 bringup 基础上启动 map_server（载入静态地图）、amcl（定位）、move_base（路径规划）。
+-->
+<launch>
+  <!-- 底盘串口设备（透传给 bringup） -->
+  <arg name="serial_port" default="/dev/chassis"/>
+  <!-- 雷达串口设备（透传给 bringup） -->
+  <arg name="lidar_port" default="/dev/ydlidar"/>
+  <!-- 静态地图文件，由 map_server 加载 -->
+  <arg name="map_file" default="$(find myrobot)/map/map.yaml"/>
+  <!-- 是否同时启动 rviz 可视化 -->
+  <arg name="rviz" default="false"/>
+  <arg name="use_ekf" default="false"/>
+  <arg name="use_imu_yaw" default="false"/>
+
+  <param name="use_sim_time" value="false"/>
+
+  <include file="$(find myrobot)/launch/bringup.launch">
+    <arg name="serial_port" value="$(arg serial_port)"/>
+    <arg name="lidar_port" value="$(arg lidar_port)"/>
+    <arg name="use_ekf" value="$(arg use_ekf)"/>
+    <arg name="use_imu_yaw" value="$(arg use_imu_yaw)"/>
+  </include>
+
+  <node pkg="map_server" type="map_server" name="map_server" args="$(arg map_file)"/>
+
+  <node pkg="amcl" type="amcl" name="amcl" output="screen">
+    <rosparam file="$(find myrobot)/config/amcl.yaml" command="load"/>
+  </node>
+
+  <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
+    <rosparam file="$(find myrobot)/config/costmap_common.yaml" command="load" ns="global_costmap"/>
+    <rosparam file="$(find myrobot)/config/costmap_common.yaml" command="load" ns="local_costmap"/>
+    <rosparam file="$(find myrobot)/config/global_costmap.yaml" command="load"/>
+    <rosparam file="$(find myrobot)/config/local_costmap.yaml" command="load"/>
+    <rosparam file="$(find myrobot)/config/move_base.yaml" command="load"/>
+    <rosparam file="$(find myrobot)/config/dwa_local_planner.yaml" command="load"/>
+    <rosparam file="$(find myrobot)/config/global_planner.yaml" command="load"/>
+  </node>
+
+  <node if="$(arg rviz)" pkg="rviz" type="rviz" name="rviz"
+        args="-d $(find myrobot)/map/my_map.rviz"/>
+</launch>

@@ -1,0 +1,23 @@
+<launch>
+  <!-- 默认加载远程 rviz 配置（SSH/远程开发场景） -->
+  <include file="$(find myrobot)/launch/remote_rviz.launch"/>
+  <!-- 以下为旧版 v1 本地启动逻辑，已禁用；保留作为参考 -->
+  <group if="false">
+
+    <!-- 加载 URDF/Xacro 机器人模型 -->
+    <arg name="urdf_file" default="$(find xacro)/xacro '$(find myrobot)/my_urdf/robot.urdf.xacro'" /> 
+   
+  <param name="robot_description" command="$(arg urdf_file)" />
+    
+    
+   <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" >  
+  </node>
+
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher">
+      <param name="publish_frequency" type="double" value="20.0" />
+  </node>
+<!-- 启动 rviz 可视化界面 -->
+  <node pkg="rviz" type="rviz" name="rviz" />
+  </group>
+</launch>
+

@@ -1,0 +1,17 @@
+<!--
+  remote_rviz.launch - 远程 rviz 可视化
+  在 PC/远程开发机上加载 URDF 模型并启动 rviz 显示，无需再启动底盘节点。
+-->
+<launch>
+  <!-- rviz 配置文件路径 -->
+  <arg name="config" default="$(find myrobot)/map/my_map.rviz"/>
+
+  <param name="robot_description"
+         command="$(find xacro)/xacro $(find myrobot)/my_urdf/robot.urdf.xacro"/>
+
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher_view" output="screen">
+    <param name="publish_frequency" value="10.0"/>
+  </node>
+
+  <node pkg="rviz" type="rviz" name="rviz" args="-d $(arg config)"/>
+</launch>
