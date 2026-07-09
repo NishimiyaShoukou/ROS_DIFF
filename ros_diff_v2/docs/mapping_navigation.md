@@ -100,7 +100,7 @@ rosrun map_server map_saver -f ~/maps/home
 roslaunch myrobot navigation_v2.launch map_file:=/home/ubuntu/maps/home.yaml use_imu_yaw:=false use_ekf:=false rviz:=false
 ```
 
-如果你的用户名不是 `ubuntu`，把路径换成自己的地图路径，例如 `/home/thoelc/maps/home.yaml`。
+`map_file` 参数应指向实际保存的地图 yaml 文件，例如 `/home/<user>/maps/home.yaml`。
 
 RViz：
 

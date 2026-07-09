@@ -10,20 +10,51 @@ Raspberry Pi 4B + STM32 differential-drive ROS robot
   <sub>v1 实物原型图。v2 延续 2WD 差速底盘思路，并更新为 ROS Noetic、STM32F1 和 YDLIDAR-X2。</sub>
 </p>
 
-`ROS_DIFF` 是本仓库名称，其中 `DIFF` 表示 differential drive，即双轮差速驱动。项目记录了一台基于 Raspberry Pi 4B 和 STM32 的 ROS 小车从早期版本到 v2 的重构过程，包含 ROS 上位机、STM32 下位机、URDF、建图导航配置和实车调试文档。
+`ROS_DIFF` 是本仓库名称，其中 `DIFF` 表示 differential drive，即双轮差速驱动。项目记录了一台基于 Raspberry Pi 4B 和 STM32 的 ROS 小车从早期版本到 v2 的重构过程，包含 ROS 上位机、STM32 下位机、URDF、建图导航配置和部署文档。
 
 当前主线版本：`v2.1.0`
 
-## Project Status
+## Features
 
-| 模块 | 状态 |
-| --- | --- |
-| 底盘通信 | STM32 与树莓派通过自定义二进制串口协议通信，v2.1 使用 CRC-8/MAXIM。 |
-| 里程计 | ROS 侧基于双轮累计编码器计数计算 `/wheel/odom` 和 `/odom`。 |
-| 雷达 | YDLIDAR-X2 已发布 `/scan`，实测可用于 gmapping。 |
-| 建图 | `mapping_v2.launch` 已在室内环境跑通。 |
-| 导航 | `navigation_v2.launch` 已跑通 AMCL + move_base，可向目标点移动。 |
-| 待标定 | 有效轮距、IMU yaw、导航速度和局部代价地图仍需按场地继续微调。 |
+- 自定义 STM32 底盘串口协议，使用 CRC-8/MAXIM 校验。
+- ROS Noetic 上位机节点，支持 `/cmd_vel`、里程计、TF、IMU、BatteryState 和 `/car_state` 底盘状态话题。
+- YDLIDAR-X2 激光雷达接入，面向 gmapping、AMCL 和 move_base。
+- 差速底盘 URDF、costmap footprint、gmapping、AMCL、move_base 和 DWA 配置。
+- STM32 端包含电机闭环、编码器累计计数、MPU6050、底盘测试接口和电池电压检测。
+- 配套 PID 调试网页和 URDF 参数编辑器，便于底盘移植和参数维护。
+
+## Software Architecture
+
+```mermaid
+flowchart LR
+  subgraph PC["Remote PC"]
+    RViz["RViz / teleop"]
+  end
+
+  subgraph RPI["Raspberry Pi 4B · ROS Noetic"]
+    Bringup["bringup.launch"]
+    Base["base_controller"]
+    SLAM["gmapping"]
+    Nav["AMCL + move_base"]
+    URDF["robot_state_publisher"]
+  end
+
+  subgraph MCU["STM32F103"]
+    Serial["CRC serial protocol"]
+    Control["motor PID"]
+    Sensors["encoders / MPU6050 / battery ADC"]
+  end
+
+  Lidar["YDLIDAR-X2"] -->|/scan| SLAM
+  Lidar -->|/scan| Nav
+  RViz -->|/cmd_vel / goals| RPI
+  Bringup --> Base
+  Base <-->|rpm command / feedback| Serial
+  Serial --> Control
+  Sensors --> Serial
+  Base -->|/odom / TF / imu / battery| RPI
+  URDF --> RPI
+```
 
 ## Hardware Overview
 
@@ -36,9 +67,9 @@ Raspberry Pi 4B + STM32 differential-drive ROS robot
 | 底盘串口 | 默认设备 `/dev/chassis`，115200 8N1 |
 | 驱动轮 | 直径 48 mm，轮宽 19 mm |
 | 有效轮距 | 初值 129 mm |
-| 有效轮周长 | `0.144764589 m`，由 1 m 直行测试校准 |
+| 有效轮周长 | `0.144764589 m`，由底盘标定得到 |
 | 雷达位姿 | `x=+0.080 m, y=0, z=+0.130 m, yaw=pi` |
-| IMU | MPU6050，当前建议建图导航先使用 `use_imu_yaw:=false` |
+| IMU | MPU6050，可通过 launch 参数切换是否参与 yaw 融合 |
 
 完整尺寸、引脚和坐标说明见 [ros_diff_v2/docs/hardware_v2.md](ros_diff_v2/docs/hardware_v2.md)。
 
@@ -93,13 +124,13 @@ roslaunch myrobot navigation_v2.launch map_file:=/home/ubuntu/maps/home.yaml use
 
 ## Documentation
 
-- [v2 README](ros_diff_v2/README.md)：v2 目录、常用命令和当前验证状态。
+- [v2 README](ros_diff_v2/README.md)：v2 目录和常用命令。
 - [硬件与坐标](ros_diff_v2/docs/hardware_v2.md)：尺寸、引脚、雷达/IMU 位姿和电池检测。
 - [树莓派部署](ros_diff_v2/docs/raspberry_pi_setup.md)：clone、依赖、YDLIDAR 驱动、udev 和构建。
 - [建图与导航](ros_diff_v2/docs/mapping_navigation.md)：bringup、teleop、gmapping、map_saver、AMCL 和 RViz 配置。
 - [串口协议](ros_diff_v2/docs/serial_protocol_v2.md)：v2.1 二进制帧、CRC-8/MAXIM、状态位和电池字段。
 - [故障排查](ros_diff_v2/docs/troubleshooting.md)：常见 ROS、串口、雷达和 RViz 问题。
-- [ROS v2 分析记录](ros_diff_v2/docs/ros_v2_analysis.md)：开发过程中的技术分析和标定思路。
+- [软件架构与数据流](ros_diff_v2/docs/ros_v2_analysis.md)：ROS 节点、串口协议、里程计和导航链路。
 
 ## Versioning
 
@@ -108,7 +139,5 @@ roslaunch myrobot navigation_v2.launch map_file:=/home/ubuntu/maps/home.yaml use
 - `main` 保持当前可运行主线。
 - `ros_diff_v1/` 作为历史版本参考。
 - `ros_diff_v2/` 作为当前开发和调试主线。
-- `v2.x.y` Git tag 标记已经实车验证过的版本。
+- `v2.x.y` Git tag 标记功能相对完整的版本。
 - 发布时同步更新 `VERSION`、`CHANGELOG.md` 和 ROS `package.xml`。
-
-当前建议优先在 v2 上继续补充实车测试、地图、标定参数和导航调参记录。

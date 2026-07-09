@@ -4,16 +4,13 @@ v2 是当前可运行的 2WD ROS 小车版本，硬件目标为 Raspberry Pi 4B 
 
 当前版本：`2.1.0`
 
-## Current Status
+## What Is Included
 
-2026-07-09 实车验证结果：
-
-- STM32 与树莓派通过自定义二进制串口协议通信，协议 v2.1 使用 CRC-8/MAXIM。
-- `/car_state` 可稳定约 50 Hz 输出。
-- YDLIDAR-X2 可发布 `/scan`，实测约 6 Hz。
-- `mapping_v2.launch` 可以完成 gmapping 建图。
-- `navigation_v2.launch` 可以启动 AMCL + move_base，小车能朝目标点移动。
-- 当前建议建图和导航时先使用 `use_imu_yaw:=false`，等 MPU6050 安装姿态和漂移完全确认后再开启 IMU 融合。
+- `base_controller`：连接 STM32 底盘，订阅 `/cmd_vel`，发布里程计、TF、IMU、电池和底盘状态。
+- `bringup.launch`：启动 URDF、底盘控制器和可选 YDLIDAR-X2。
+- `mapping_v2.launch`：基于 `/scan` 与里程计启动 gmapping。
+- `navigation_v2.launch`：启动 map_server、AMCL 和 move_base。
+- `state_estimation.launch`：可选 `robot_localization` EKF 配置。
 
 ## Directory Layout
 
@@ -30,7 +27,7 @@ v2 是当前可运行的 2WD ROS 小车版本，硬件目标为 Raspberry Pi 4B 
 | Topic | 类型 | 说明 |
 | --- | --- | --- |
 | `/cmd_vel` | `geometry_msgs/Twist` | ROS 速度命令输入。 |
-| `/car_state` | `myrobot/speed` | 兼容旧版的底盘速度状态。 |
+| `/car_state` | `myrobot/speed` | 底盘速度状态。 |
 | `/wheel/odom` | `nav_msgs/Odometry` | 纯双轮编码器里程计，适合标定轮径和轮距。 |
 | `/odom` | `nav_msgs/Odometry` | 默认发布给导航使用的里程计。 |
 | `/imu/data` | `sensor_msgs/Imu` | STM32 上传的 MPU6050 yaw 数据。 |
@@ -73,7 +70,7 @@ roslaunch myrobot bringup.launch enable_lidar:=false use_imu_yaw:=false
 roslaunch myrobot bringup.launch enable_lidar:=true use_imu_yaw:=false
 ```
 
-看到下面几项基本正常后，再进入建图：
+进入建图前可检查：
 
 ```bash
 rostopic hz /car_state
@@ -82,7 +79,7 @@ rostopic hz /scan
 rosnode info /base_controller
 ```
 
-`/base_controller` 必须已经启动并订阅 `/cmd_vel`，否则键盘或 `rostopic pub` 发速度，小车也不会动。
+`/base_controller` 应启动并订阅 `/cmd_vel`。
 
 ## Mapping
 
@@ -111,11 +108,11 @@ rosrun map_server map_saver -f ~/maps/home
 roslaunch myrobot navigation_v2.launch map_file:=/home/ubuntu/maps/home.yaml use_imu_yaw:=false use_ekf:=false rviz:=false
 ```
 
-在远程 PC 的 RViz 里设置初始位姿，然后发布 `2D Nav Goal`。小房间、特征少的环境和初始位姿不准都会明显影响导航效果，第一次调试建议用很低的速度。
+在远程 PC 的 RViz 里设置初始位姿，然后发布 `2D Nav Goal`。
 
 ## Important Notes
 
-- v2 ROS 上位机和 STM32 固件必须一起更新，CRC 协议不兼容旧版无 CRC 帧。
-- 低层电机方向先用 PID 调试网页确认；如果网页里单轮测试都不对，应先修 STM32 引脚或电机方向，不要先在 ROS 里补偿。
+- v2 ROS 上位机和 STM32 固件必须一起更新，CRC 协议不兼容无 CRC 帧。
+- 电机和编码器方向建议先用 STM32/PID 调试工具确认，再接入 ROS。
 - 当前电机、TB6612 通道和编码器引脚分配见 [docs/hardware_v2.md](docs/hardware_v2.md)。
 - Raspberry Pi 4B 2GB 不建议本机跑 RViz，推荐远程电脑显示。
