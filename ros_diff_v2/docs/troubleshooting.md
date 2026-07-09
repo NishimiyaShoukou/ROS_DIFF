@@ -92,16 +92,16 @@ rostopic hz /car_state
 - STM32 没烧 v2.1 固件，协议 CRC 或帧长不匹配。
 - 串口被 PID 调试网页或其他串口助手占用。
 
-## Wheel Direction Is Strange
+## Wheel Direction Or Encoder Sign Is Strange
 
-如果 PID 调试网页里给左右轮独立转速都异常，不要先改 ROS。先检查 STM32 固件中的电机映射：
+如果更换电机线、驱动板或 PCB 后轮子方向异常，先在 STM32/PID 调试工具里做低速单轮测试，再接入 ROS。当前工程默认引脚分配为：
 
 - 左轮 MOTOR1：`PA8 + PB14/PB15`。
 - 右轮 MOTOR2：`PA9 + PB12/PB13`。
 - 左编码器：`PB6/PB7`。
 - 右编码器：`PA0/PA1`。
 
-底层测试正常后，再用 ROS YAML 的 `swap_left_right`、`invert_left_command`、`invert_right_command`、`invert_left_feedback`、`invert_right_feedback` 做小范围补偿。
+底层测试正常后，再用 ROS YAML 的 `swap_left_right`、`invert_left_command`、`invert_right_command`、`invert_left_feedback`、`invert_right_feedback` 做方向补偿。
 
 ## RViz Crashes
 

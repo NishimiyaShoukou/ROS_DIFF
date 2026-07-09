@@ -117,5 +117,5 @@ roslaunch myrobot navigation_v2.launch map_file:=/home/ubuntu/maps/home.yaml use
 
 - v2 ROS 上位机和 STM32 固件必须一起更新，CRC 协议不兼容旧版无 CRC 帧。
 - 低层电机方向先用 PID 调试网页确认；如果网页里单轮测试都不对，应先修 STM32 引脚或电机方向，不要先在 ROS 里补偿。
-- v2 已修正 MOTOR1/MOTOR2 与 TB6612 A/B 通道的映射。详见 [docs/hardware_v2.md](docs/hardware_v2.md)。
+- 当前电机、TB6612 通道和编码器引脚分配见 [docs/hardware_v2.md](docs/hardware_v2.md)。
 - Raspberry Pi 4B 2GB 不建议本机跑 RViz，推荐远程电脑显示。
