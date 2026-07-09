@@ -19,7 +19,7 @@ void Get_Led(void)
 }
 
 
-//Ñ²ÏßÇ°½ø
+//å·¡çº¿å‰è¿›
 void track_line(void)
 {
 	 static uint8_t buf=0,buf1=0,buf2=0;
@@ -176,7 +176,7 @@ void track_line_back(void)
 	 static uint8_t buf=0;
 //		if(Led_buffer[rin3]==1&&Led_buffer[rin2]==0&&Led_buffer[rin1]==0&&Led_buffer[mid]==0&&Led_buffer[lin1]==0&&Led_buffer[lin2]==0&&Led_buffer[lin3]==0)
 //	 {
-//		   Set_speed_back(40,90);  //ÓÒÂÖºÍ×óÂÖ
+//		   Set_speed_back(40,90);  //å³è½®å’Œå·¦è½®
 //		  
 //		 
 //	 }
@@ -339,7 +339,7 @@ void Decision_cross(void)
 					 }
 					 else
 					 {
-						 Move(Car_app); //¶¯×÷Ö´ĞĞÅĞ¶Ïº¯Êı
+						 Move(Car_app); //åŠ¨ä½œæ‰§è¡Œåˆ¤æ–­å‡½æ•°
 						 Map_Record(Car_app);
 					 }
 					

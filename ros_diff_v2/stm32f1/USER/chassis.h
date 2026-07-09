@@ -14,12 +14,12 @@
 typedef enum
 {
 	
-	START			,	//冲刺模式
-	WAIT			, //等待模式
-	SWAP      , //抓球模式
-	PLACE     , //放球模式
-	TURN      , //转向模式
-	RETURN      , //返回模式
+	START			,	//鍐插埡妯″紡
+	WAIT			, //绛夊緟妯″紡
+	SWAP      , //鎶撶悆妯″紡
+	PLACE     , //鏀剧悆妯″紡
+	TURN      , //杞悜妯″紡
+	RETURN      , //杩斿洖妯″紡
 }CarStateTypedef;
 
 

@@ -13,7 +13,7 @@ typedef struct
 
 typedef struct
 { 
-	float SetPoint;			//�趨Ŀ��ֵ
+	float SetPoint;			//设定目标值
 	float SetPointLast;
 }Map_machine;
 
