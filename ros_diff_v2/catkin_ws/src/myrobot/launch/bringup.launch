@@ -15,7 +15,7 @@
   <!-- Optional robot_localization EKF. Keep false until wheel and IMU signs are verified. -->
   <arg name="use_ekf" default="false"/>
   <!-- 是否使用 IMU 偏航角融合里程计（base_controller 内部参数） -->
-  <arg name="use_imu_yaw" default="true"/>
+  <arg name="use_imu_yaw" default="false"/>
 
   <param name="robot_description"
          command="$(find xacro)/xacro $(find myrobot)/my_urdf/robot.urdf.xacro"/>

@@ -41,6 +41,20 @@ rosrun teleop_twist_keyboard teleop_twist_keyboard.py _speed:=0.08 _turn:=0.35 _
 
 如果 `j` 的 `/cmd_vel.angular.z` 为正，但小车实际右转，先检查低层左右轮方向和编码器反馈，再决定是否修改 ROS 配置。
 
+### Tablet control
+
+也可以不用键盘和 RViz 完成日常操作。安装 rosbridge 并启动移动控制台：
+
+```bash
+sudo apt install ros-noetic-rosbridge-server
+source ~/ROS_DIFF/ros_diff_v2/catkin_ws/devel/setup.bash
+roslaunch myrobot_web mobile_control.launch
+```
+
+平板连接同一 Wi-Fi 后访问 `http://<raspberry-pi-ip>:8080`。页面可以切换底盘、建图和导航模式，显示地图，保存默认地图，并在地图上设置初始位姿和导航目标。
+
+`mobile_control.launch` 会管理底盘、雷达、gmapping 和 move_base 的启动顺序。使用网页时不要再从其他终端重复启动 `bringup.launch`、`mapping_v2.launch` 或 `navigation_v2.launch`。
+
 ## 3. Remote RViz
 
 远程电脑需要能访问树莓派 ROS master。电脑端：

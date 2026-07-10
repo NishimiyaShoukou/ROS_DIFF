@@ -140,6 +140,8 @@ int main(int argc, char** argv)
   bool use_imu_yaw = true;
   bool invert_imu_yaw = true;
   bool swap_left_right = false;
+  bool swap_command_left_right = false;
+  bool swap_feedback_left_right = false;
   bool invert_left_command = false;
   bool invert_right_command = false;
   bool invert_left_feedback = false;
@@ -183,6 +185,8 @@ int main(int argc, char** argv)
   pnh.param("use_imu_yaw", use_imu_yaw, use_imu_yaw);
   pnh.param("invert_imu_yaw", invert_imu_yaw, invert_imu_yaw);
   pnh.param("swap_left_right", swap_left_right, swap_left_right);
+  pnh.param("swap_command_left_right", swap_command_left_right, swap_left_right);
+  pnh.param("swap_feedback_left_right", swap_feedback_left_right, swap_left_right);
   pnh.param("invert_left_command", invert_left_command, invert_left_command);
   pnh.param("invert_right_command", invert_right_command, invert_right_command);
   pnh.param("invert_left_feedback", invert_left_feedback, invert_left_feedback);
@@ -239,6 +243,16 @@ int main(int argc, char** argv)
 
   ROS_INFO_STREAM("base_controller protocol 2.1, Boost.Asio transport, port="
                   << serial_port << " @" << baud_rate);
+  ROS_INFO_STREAM("base_controller odom config: use_imu_yaw="
+                  << (use_imu_yaw ? "true" : "false")
+                  << ", swap_command_left_right="
+                  << (swap_command_left_right ? "true" : "false")
+                  << ", swap_feedback_left_right="
+                  << (swap_feedback_left_right ? "true" : "false")
+                  << ", invert_left_feedback="
+                  << (invert_left_feedback ? "true" : "false")
+                  << ", invert_right_feedback="
+                  << (invert_right_feedback ? "true" : "false"));
 
   ros::Rate rate(control_rate);
   while (ros::ok())
@@ -335,7 +349,7 @@ int main(int argc, char** argv)
               encoderDelta(feedback.left_encoder_count, last_left_encoder_count);
           int32_t right_delta =
               encoderDelta(feedback.right_encoder_count, last_right_encoder_count);
-          if (swap_left_right)
+          if (swap_feedback_left_right)
           {
             std::swap(left_delta, right_delta);
           }
@@ -511,7 +525,7 @@ int main(int argc, char** argv)
       {
         right_rpm = -right_rpm;
       }
-      if (swap_left_right)
+      if (swap_command_left_right)
       {
         std::swap(left_rpm, right_rpm);
       }

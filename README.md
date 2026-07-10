@@ -12,7 +12,7 @@ Raspberry Pi 4B + STM32 differential-drive ROS robot
 
 `ROS_DIFF` 是本仓库名称，其中 `DIFF` 表示 differential drive，即双轮差速驱动。项目记录了一台基于 Raspberry Pi 4B 和 STM32 的 ROS 小车从早期版本到 v2 的重构过程，包含 ROS 上位机、STM32 下位机、URDF、建图导航配置和部署文档。
 
-当前主线版本：`v2.1.0`
+当前主线版本：`v2.2.0`
 
 ## Features
 
@@ -21,14 +21,16 @@ Raspberry Pi 4B + STM32 differential-drive ROS robot
 - YDLIDAR-X2 激光雷达接入，面向 gmapping、AMCL 和 move_base。
 - 差速底盘 URDF、costmap footprint、gmapping、AMCL、move_base 和 DWA 配置。
 - STM32 端包含电机闭环、编码器累计计数、MPU6050、底盘测试接口和电池电压检测。
+- 平板/手机网页控制台，支持触摸遥控、地图显示、建图保存、初始位姿和导航目标操作。
 - 配套 PID 调试网页和 URDF 参数编辑器，便于底盘移植和参数维护。
 
 ## Software Architecture
 
 ```mermaid
 flowchart LR
-  subgraph PC["Remote PC"]
+  subgraph UI["Operator devices"]
     RViz["RViz / teleop"]
+    Tablet["Tablet web control"]
   end
 
   subgraph RPI["Raspberry Pi 4B · ROS Noetic"]
@@ -37,6 +39,7 @@ flowchart LR
     SLAM["gmapping"]
     Nav["AMCL + move_base"]
     URDF["robot_state_publisher"]
+    Web["myrobot_web + rosbridge"]
   end
 
   subgraph MCU["STM32F103"]
@@ -48,6 +51,10 @@ flowchart LR
   Lidar["YDLIDAR-X2"] -->|/scan| SLAM
   Lidar -->|/scan| Nav
   RViz -->|/cmd_vel / goals| RPI
+  Tablet <-->|WebSocket| Web
+  Web -->|mode control| Bringup
+  Web -->|/cmd_vel| Base
+  Web -->|goals| Nav
   Bringup --> Base
   Base <-->|rpm command / feedback| Serial
   Serial --> Control
@@ -55,6 +62,16 @@ flowchart LR
   Base -->|/odom / TF / imu / battery| RPI
   URDF --> RPI
 ```
+
+## Tablet Web Control
+
+<p align="center">
+  <img src="ros_diff_v2/docs/images/tablet_web_navigation.jpg" alt="ROS_DIFF v2 tablet web navigation interface" width="1000">
+</p>
+
+<p align="center">
+  <sub>平板浏览器中的实车导航界面：地图、触摸遥控、电池状态、初始位姿和导航目标集中在同一页面。</sub>
+</p>
 
 ## Hardware Overview
 
@@ -80,6 +97,7 @@ flowchart LR
 | `ros_diff_v1/` | 早期 ROS/STM32F4 版本，作为历史参考保留。 |
 | `ros_diff_v2/` | 当前主线版本，面向 Raspberry Pi 4B、ROS Noetic、STM32F1 和 YDLIDAR-X2。 |
 | `ros_diff_v2/catkin_ws/` | ROS Noetic 工作空间。 |
+| `ros_diff_v2/catkin_ws/src/myrobot_web/` | 平板网页控制台和运行模式管理节点。 |
 | `ros_diff_v2/stm32f1/` | STM32F103 下位机工程。 |
 | `ros_diff_v2/docs/` | v2 部署、协议、硬件、建图导航和排错文档。 |
 | `VERSION` | 当前公开版本号。 |
@@ -101,6 +119,15 @@ source devel/setup.bash
 ```bash
 roslaunch myrobot bringup.launch enable_lidar:=true use_imu_yaw:=false
 ```
+
+也可以由平板网页统一启动和操作：
+
+```bash
+sudo apt install ros-noetic-rosbridge-server
+roslaunch myrobot_web mobile_control.launch
+```
+
+平板连接同一 Wi-Fi 后访问 `http://<raspberry-pi-ip>:8080`。
 
 建图：
 

@@ -1,0 +1,31 @@
+<launch>
+  <arg name="http_port" default="8080"/>
+  <arg name="websocket_port" default="9090"/>
+  <arg name="auto_start_mode" default="idle"/>
+  <arg name="serial_port" default="/dev/chassis"/>
+  <arg name="lidar_port" default="/dev/ydlidar"/>
+  <arg name="map_file" default="$(find myrobot)/map/map.yaml"/>
+  <arg name="map_prefix" default="$(find myrobot)/map/map"/>
+  <arg name="use_imu_yaw" default="false"/>
+  <arg name="use_ekf" default="false"/>
+
+  <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch">
+    <arg name="port" value="$(arg websocket_port)"/>
+    <arg name="topics_glob" value="[/mobile/*,/map,/battery_state,/move_base/*,/move_base_simple/*,/initialpose]"/>
+    <arg name="services_glob" value="[/mobile/*]"/>
+    <arg name="params_glob" value="[]"/>
+  </include>
+
+  <node pkg="myrobot_web" type="mobile_robot_manager.py"
+        name="mobile_robot_manager" output="screen" required="true">
+    <param name="http_port" value="$(arg http_port)"/>
+    <param name="websocket_port" value="$(arg websocket_port)"/>
+    <param name="auto_start_mode" value="$(arg auto_start_mode)"/>
+    <param name="serial_port" value="$(arg serial_port)"/>
+    <param name="lidar_port" value="$(arg lidar_port)"/>
+    <param name="map_file" value="$(arg map_file)"/>
+    <param name="map_prefix" value="$(arg map_prefix)"/>
+    <param name="use_imu_yaw" value="$(arg use_imu_yaw)"/>
+    <param name="use_ekf" value="$(arg use_ekf)"/>
+  </node>
+</launch>

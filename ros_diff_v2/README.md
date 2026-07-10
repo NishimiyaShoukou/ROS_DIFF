@@ -2,7 +2,7 @@
 
 v2 是当前可运行的 2WD ROS 小车版本，硬件目标为 Raspberry Pi 4B 2GB、Ubuntu 20.04 Server、ROS Noetic、STM32F103 和 YDLIDAR-X2。
 
-当前版本：`2.1.0`
+当前版本：`2.2.0`
 
 ## What Is Included
 
@@ -11,12 +11,14 @@ v2 是当前可运行的 2WD ROS 小车版本，硬件目标为 Raspberry Pi 4B 
 - `mapping_v2.launch`：基于 `/scan` 与里程计启动 gmapping。
 - `navigation_v2.launch`：启动 map_server、AMCL 和 move_base。
 - `state_estimation.launch`：可选 `robot_localization` EKF 配置。
+- `myrobot_web`：面向平板和手机浏览器的遥控、建图与导航操作端。
 
 ## Directory Layout
 
 | 路径 | 说明 |
 | --- | --- |
-| `catkin_ws/` | ROS Noetic 工作空间，主要包为 `myrobot`。 |
+| `catkin_ws/` | ROS Noetic 工作空间，包含 `myrobot` 和 `myrobot_web`。 |
+| `catkin_ws/src/myrobot_web/` | 本地网页、模式管理、地图保存和速度指令仲裁。 |
 | `stm32f1/` | STM32F103 下位机工程，包含电机、编码器、IMU、电池检测和串口协议。 |
 | `stm32f1/TOOLS/pid_tuner/` | 浏览器版 PID/底盘串口调试工具。 |
 | `myrobot/TOOLS/urdf_editor/` | URDF 参数可视化编辑工具，便于后续移植新底盘。 |
@@ -49,6 +51,7 @@ source devel/setup.bash
 ```bash
 mkdir -p ~/catkin_ws/src
 cp -r ~/ROS_DIFF/ros_diff_v2/catkin_ws/src/myrobot ~/catkin_ws/src/
+cp -r ~/ROS_DIFF/ros_diff_v2/catkin_ws/src/myrobot_web ~/catkin_ws/src/
 cd ~/catkin_ws
 catkin_make
 source devel/setup.bash
@@ -80,6 +83,33 @@ rosnode info /base_controller
 ```
 
 `/base_controller` 应启动并订阅 `/cmd_vel`。
+
+## Tablet Web Control
+
+安装浏览器桥接包：
+
+```bash
+sudo apt update
+sudo apt install ros-noetic-rosbridge-server
+```
+
+停止其他正在运行的 bringup、建图或导航 launch，然后启动移动控制台：
+
+```bash
+roslaunch myrobot_web mobile_control.launch
+```
+
+平板与树莓派连接同一 Wi-Fi，在浏览器访问：
+
+```text
+http://<raspberry-pi-ip>:8080
+```
+
+控制台默认启动底盘和雷达，可在页面内切换建图/导航、保存默认地图、设置初始位姿和导航目标。完整说明见 [`catkin_ws/src/myrobot_web/README.md`](catkin_ws/src/myrobot_web/README.md)。
+
+<p align="center">
+  <img src="docs/images/tablet_web_navigation.jpg" alt="ROS_DIFF v2 平板网页导航界面" width="1000">
+</p>
 
 ## Mapping
 

@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f4f5f3">
+  <title>ROS_DIFF 移动控制台</title>
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="vendor/roslib.min.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <h1>移动控制台</h1>
+      <span>ROS_DIFF v2</span>
+    </div>
+    <div class="header-status" aria-live="polite">
+      <span id="ros-status" class="status-chip status-offline">
+        <i aria-hidden="true"></i>ROS 未连接
+      </span>
+      <span id="mode-status" class="status-chip">
+        <i aria-hidden="true"></i>模式未知
+      </span>
+    </div>
+    <button id="emergency-stop" class="danger-button" type="button">急停</button>
+  </header>
+
+  <main class="workspace">
+    <section class="map-workspace" aria-label="地图与任务">
+      <div class="commandbar">
+        <div class="mode-tabs" role="group" aria-label="运行模式">
+          <button type="button" data-start-mode="idle">底盘</button>
+          <button type="button" data-start-mode="mapping">建图</button>
+          <button type="button" data-start-mode="navigation">导航</button>
+        </div>
+        <div class="command-actions">
+          <button id="save-map" type="button" disabled>保存地图</button>
+          <button id="stop-mode" type="button">停止模式</button>
+        </div>
+      </div>
+
+      <div id="map-viewport" class="map-viewport">
+        <canvas id="map-canvas" aria-label="机器人二维地图"></canvas>
+        <div id="map-empty" class="map-empty">
+          <strong>等待地图</strong>
+        </div>
+
+        <div class="map-tools" role="group" aria-label="地图操作">
+          <button type="button" data-map-tool="view" class="active">查看</button>
+          <button type="button" data-map-tool="pose">初始位姿</button>
+          <button type="button" data-map-tool="goal">导航目标</button>
+        </div>
+
+        <div class="zoom-tools" role="group" aria-label="地图缩放">
+          <button id="zoom-out" type="button" title="缩小" aria-label="缩小">−</button>
+          <button id="fit-map" type="button">适配</button>
+          <button id="zoom-in" type="button" title="放大" aria-label="放大">+</button>
+        </div>
+
+        <div class="map-readout">
+          <span id="map-size">-- × --</span>
+          <span id="pose-readout">x -- · y -- · θ --</span>
+        </div>
+      </div>
+    </section>
+
+    <aside class="control-panel" aria-label="驾驶和状态">
+      <section class="drive-section">
+        <div class="section-heading">
+          <div>
+            <h2>手动驾驶</h2>
+            <p id="drive-state">待命</p>
+          </div>
+          <div class="speed-tabs" role="group" aria-label="速度档位">
+            <button type="button" data-speed="precise" class="active">低速</button>
+            <button type="button" data-speed="normal">标准</button>
+          </div>
+        </div>
+
+        <div id="joystick" class="joystick" role="application" aria-label="触摸驾驶摇杆">
+          <div class="joystick-axis joystick-axis-x" aria-hidden="true"></div>
+          <div class="joystick-axis joystick-axis-y" aria-hidden="true"></div>
+          <div id="joystick-knob" class="joystick-knob"></div>
+        </div>
+
+        <div class="velocity-readout" aria-live="polite">
+          <div><span>线速度</span><strong id="linear-value">0.00</strong><small>m/s</small></div>
+          <div><span>角速度</span><strong id="angular-value">0.00</strong><small>rad/s</small></div>
+        </div>
+      </section>
+
+      <section class="telemetry-section">
+        <div class="section-heading compact">
+          <h2>机器人状态</h2>
+          <span id="battery-summary">电池 --</span>
+        </div>
+        <dl class="telemetry-list">
+          <div><dt>底盘串口</dt><dd id="node-base" data-state="off">未运行</dd></div>
+          <div><dt>激光雷达</dt><dd id="node-lidar" data-state="off">未运行</dd></div>
+          <div><dt>建图</dt><dd id="node-mapping" data-state="off">未运行</dd></div>
+          <div><dt>定位</dt><dd id="node-localization" data-state="off">未运行</dd></div>
+          <div><dt>路径规划</dt><dd id="node-navigation" data-state="off">未运行</dd></div>
+        </dl>
+        <div id="system-message" class="system-message">等待树莓派状态</div>
+      </section>
+    </aside>
+  </main>
+
+  <dialog id="save-dialog">
+    <form method="dialog">
+      <h2>保存当前地图？</h2>
+      <p>这会更新导航使用的默认 map.yaml 和 map.pgm。</p>
+      <div class="dialog-actions">
+        <button value="cancel" type="submit">取消</button>
+        <button id="confirm-save" value="default" type="submit" class="primary-button">保存</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

@@ -9,6 +9,7 @@
   <arg name="rviz" default="false"/>
   <arg name="use_ekf" default="false"/>
   <arg name="use_imu_yaw" default="false"/>
+  <arg name="cmd_vel_topic" default="cmd_vel"/>
 
   <!-- 默认调用 navigation_v2.launch：map_server + amcl + move_base -->
   <include file="$(find myrobot)/launch/navigation_v2.launch">
@@ -18,6 +19,7 @@
     <arg name="rviz" value="$(arg rviz)"/>
     <arg name="use_ekf" value="$(arg use_ekf)"/>
     <arg name="use_imu_yaw" value="$(arg use_imu_yaw)"/>
+    <arg name="cmd_vel_topic" value="$(arg cmd_vel_topic)"/>
   </include>
 
   <!-- 以下为旧版 v1 导航启动流程（URDF + HLS-LFCD 雷达 + move_base），已禁用，仅作参考 -->

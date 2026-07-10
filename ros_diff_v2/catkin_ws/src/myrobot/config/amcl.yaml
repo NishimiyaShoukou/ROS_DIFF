@@ -5,17 +5,17 @@ odom_model_type: diff
 tf_broadcast: true
 transform_tolerance: 0.5
 
-min_particles: 300
-max_particles: 1000
+min_particles: 500
+max_particles: 1500
 kld_err: 0.02
 kld_z: 0.99
-update_min_d: 0.15
-update_min_a: 0.20
-resample_interval: 2
+update_min_d: 0.05
+update_min_a: 0.08
+resample_interval: 1
 gui_publish_rate: 5.0
 
 laser_model_type: likelihood_field
-laser_max_beams: 40
+laser_max_beams: 50
 laser_z_hit: 0.75
 laser_z_short: 0.05
 laser_z_max: 0.05
@@ -24,11 +24,11 @@ laser_sigma_hit: 0.20
 laser_lambda_short: 0.10
 laser_likelihood_max_dist: 2.0
 
-odom_alpha1: 0.20
-odom_alpha2: 0.20
-odom_alpha3: 0.20
-odom_alpha4: 0.20
-odom_alpha5: 0.10
+odom_alpha1: 0.08
+odom_alpha2: 0.08
+odom_alpha3: 0.08
+odom_alpha4: 0.08
+odom_alpha5: 0.05
 
 initial_cov_xx: 0.25
 initial_cov_yy: 0.25

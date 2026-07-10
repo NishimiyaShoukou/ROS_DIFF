@@ -42,14 +42,18 @@ max_integration_dt: 0.2
 
 max_linear_velocity: 0.30
 max_angular_velocity: 1.00
-use_imu_yaw: true
+use_imu_yaw: false
 imu_yaw_weight: 0.8
 max_imu_yaw_rate: 3.0
 imu_yaw_variance: 0.03
 # MPU6050 module is mounted component-side down, so its Z/yaw sign is inverted.
 invert_imu_yaw: true
 
+# STM32 v2 already reports physical left/right encoders in ROS forward-positive
+# convention, so neither command nor feedback channels need swapping.
 swap_left_right: false
+swap_command_left_right: false
+swap_feedback_left_right: false
 invert_left_command: false
 invert_right_command: false
 invert_left_feedback: false

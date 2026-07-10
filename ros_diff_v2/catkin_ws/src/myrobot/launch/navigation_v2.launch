@@ -13,6 +13,7 @@
   <arg name="rviz" default="false"/>
   <arg name="use_ekf" default="false"/>
   <arg name="use_imu_yaw" default="false"/>
+  <arg name="cmd_vel_topic" default="cmd_vel"/>
 
   <param name="use_sim_time" value="false"/>
 
@@ -30,6 +31,7 @@
   </node>
 
   <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
+    <remap from="cmd_vel" to="$(arg cmd_vel_topic)"/>
     <rosparam file="$(find myrobot)/config/costmap_common.yaml" command="load" ns="global_costmap"/>
     <rosparam file="$(find myrobot)/config/costmap_common.yaml" command="load" ns="local_costmap"/>
     <rosparam file="$(find myrobot)/config/global_costmap.yaml" command="load"/>

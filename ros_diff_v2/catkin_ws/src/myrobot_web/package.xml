@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>myrobot_web</name>
+  <version>2.2.0</version>
+  <description>Tablet-friendly local web control for ROS_DIFF v2.</description>
+
+  <maintainer email="jiuden777@163.com">jiuden</maintainer>
+  <license>GPL-3.0-only</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <exec_depend>actionlib_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>map_server</exec_depend>
+  <exec_depend>myrobot</exec_depend>
+  <exec_depend>nav_msgs</exec_depend>
+  <exec_depend>rosbridge_server</exec_depend>
+  <exec_depend>rosnode</exec_depend>
+  <exec_depend>python3-rospkg</exec_depend>
+  <exec_depend>rospy</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>std_srvs</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
+
+  <export/>
+</package>

@@ -1,7 +1,7 @@
 # Origin is the driven-wheel axle midpoint. Dimensions include the wheels:
 # front=122 mm, rear=24 mm, left/right=74 mm.
 footprint: [[0.122, 0.074], [0.122, -0.074], [-0.024, -0.074], [-0.024, 0.074]]
-footprint_padding: 0.01
+footprint_padding: 0.005
 transform_tolerance: 0.5
 
 obstacle_layer:
@@ -20,5 +20,5 @@ obstacle_layer:
 
 inflation_layer:
   enabled: true
-  inflation_radius: 0.22
-  cost_scaling_factor: 8.0
+  inflation_radius: 0.15
+  cost_scaling_factor: 6.0

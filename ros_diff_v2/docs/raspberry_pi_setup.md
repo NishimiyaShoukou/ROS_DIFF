@@ -26,7 +26,8 @@ sudo apt install -y \
   python3-rosdep python3-rosinstall python3-rosinstall-generator python3-wstool build-essential \
   ros-noetic-xacro ros-noetic-robot-state-publisher ros-noetic-tf \
   ros-noetic-gmapping ros-noetic-map-server ros-noetic-amcl ros-noetic-move-base \
-  ros-noetic-robot-localization ros-noetic-teleop-twist-keyboard
+  ros-noetic-robot-localization ros-noetic-teleop-twist-keyboard \
+  ros-noetic-rosbridge-server
 ```
 
 第一次使用 rosdep 时：
@@ -128,9 +129,10 @@ echo "source ~/ROS_DIFF/ros_diff_v2/catkin_ws/devel/setup.bash" >> ~/.bashrc
 
 ```bash
 rospack find myrobot
+rospack find myrobot_web
 ```
 
-能输出 `myrobot` 路径，说明环境生效。
+两个命令都能输出包路径，说明环境生效。
 
 ## 6. First Bringup
 
